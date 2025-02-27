@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
       // Simulate API delay
       setTimeout(() => {
         setIsLoading(false);
-        router.push("/admin/dashboard");
+        router.push("/appointments");
       }, 1000);
     } else {
       setTimeout(() => {

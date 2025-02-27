@@ -87,10 +87,7 @@ export default function AdminDashboard() {
         
         <div className="flex gap-2">
           <Button asChild variant="outline">
-            <Link href="/admin/block-time">Block Time Slot</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/admin/settings">Settings</Link>
+            <Link href="/block-time">Block Time Slot</Link>
           </Button>
         </div>
       </div>
@@ -98,6 +95,7 @@ export default function AdminDashboard() {
       <Tabs defaultValue="appointments" className="space-y-6">
         <TabsList>
           <TabsTrigger value="appointments">Appointments</TabsTrigger>
+          <TabsTrigger value="blocked">Blocked Time</TabsTrigger>
           <TabsTrigger value="schedule">Schedule</TabsTrigger>
           <TabsTrigger value="barbers">Barbers</TabsTrigger>
           <TabsTrigger value="services">Services</TabsTrigger>
@@ -160,7 +158,7 @@ export default function AdminDashboard() {
                           <TableCell>{appointment.service}</TableCell>
                           <TableCell>{appointment.barber}</TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs Kes{
+                            <span className={`px-2 py-1 rounded-full text-xs ${
                               appointment.status === "confirmed" 
                                 ? "bg-green-100 text-green-800" 
                                 : "bg-amber-100 text-amber-800"

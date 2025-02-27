@@ -36,12 +36,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Services offered by the barber shop
 const services = [
-  { id: "haircut", name: "Classic Haircut", price: 30, duration: 30 },
-  { id: "beard", name: "Beard Trim", price: 20, duration: 20 },
-  { id: "shave", name: "Hot Towel Shave", price: 35, duration: 30 },
-  { id: "combo", name: "Haircut & Beard Trim", price: 45, duration: 45 },
-  { id: "styling", name: "Hair Styling", price: 25, duration: 20 },
-  { id: "kids", name: "Kids Haircut", price: 25, duration: 30 },
+  { id: "haircut", name: "Classic Haircut", price: 500, duration: 60 },
+  { id: "beard", name: "Beard Trim", price: 400, duration: 60 },
+  { id: "shave", name: "Hot Towel Shave", price: 500, duration: 60 },
+  { id: "combo", name: "Haircut & Beard Trim", price: 500, duration: 60 },
+  { id: "styling", name: "Hair Styling", price: 500, duration: 60 },
+  { id: "kids", name: "Kids Haircut", price: 300, duration: 30 },
 ];
 
 // Barbers working at the shop
