@@ -69,26 +69,12 @@ export default function BookingForm() {
         } else {
           console.error("Failed to fetch services:", result.message);
           // Fallback to hardcoded services if API fails
-          setServices([
-            { id: "haircut", name: "Classic Haircut", price: 500, duration: 60 },
-            { id: "beard", name: "Beard Trim", price: 400, duration: 60 },
-            { id: "shave", name: "Hot Towel Shave", price: 500, duration: 60 },
-            { id: "combo", name: "Haircut & Beard Trim", price: 500, duration: 60 },
-            { id: "styling", name: "Hair Styling", price: 500, duration: 60 },
-            { id: "kids", name: "Kids Haircut", price: 300, duration: 30 },
-          ]);
+          setServices
         }
       } catch (err) {
         console.error("Error fetching services:", err);
         // Fallback to hardcoded services
-        setServices([
-          { id: "haircut", name: "Classic Haircut", price: 500, duration: 60 },
-          { id: "beard", name: "Beard Trim", price: 400, duration: 60 },
-          { id: "shave", name: "Hot Towel Shave", price: 500, duration: 60 },
-          { id: "combo", name: "Haircut & Beard Trim", price: 500, duration: 60 },
-          { id: "styling", name: "Hair Styling", price: 500, duration: 60 },
-          { id: "kids", name: "Kids Haircut", price: 300, duration: 30 },
-        ]);
+        setServices
       } finally {
         setLoadingServices(false);
       }
@@ -110,20 +96,12 @@ export default function BookingForm() {
         } else {
           console.error("Failed to fetch barbers:", result.message);
           // Fallback to hardcoded barbers if API fails
-          setBarbers([
-            { id: "james", name: "James Wilson" },
-            { id: "sarah", name: "Sarah Johnson" },
-            { id: "miguel", name: "Miguel Rodriguez" },
-          ]);
+          setBarbers
         }
       } catch (err) {
         console.error("Error fetching barbers:", err);
         // Fallback to hardcoded barbers
-        setBarbers([
-          { id: "james", name: "James Wilson" },
-          { id: "sarah", name: "Sarah Johnson" },
-          { id: "miguel", name: "Miguel Rodriguez" },
-        ]);
+        setBarbers
       } finally {
         setLoadingBarbers(false);
       }
@@ -151,38 +129,12 @@ export default function BookingForm() {
         } else {
           console.error("Failed to fetch time slots:", result.message);
           // Fallback to hardcoded time slots if API fails
-          setTimeSlots([
-            { time: "9:00 AM", value: "9:00 AM", disabled: false },
-            { time: "10:00 AM", value: "10:00 AM", disabled: false },
-            { time: "11:00 AM", value: "11:00 AM", disabled: false },
-            { time: "12:00 PM", value: "12:00 PM", disabled: false },
-            { time: "1:00 PM", value: "1:00 PM", disabled: false },
-            { time: "2:00 PM", value: "2:00 PM", disabled: false },
-            { time: "3:00 PM", value: "3:00 PM", disabled: false },
-            { time: "4:00 PM", value: "4:00 PM", disabled: false },
-            { time: "5:00 PM", value: "5:00 PM", disabled: false },
-            { time: "6:00 PM", value: "6:00 PM", disabled: false },
-            { time: "7:00 PM", value: "7:00 PM", disabled: false },
-            { time: "8:00 PM", value: "8:00 PM", disabled: false },
-          ]);
+          setTimeSlots
         }
       } catch (err) {
         console.error("Error fetching time slots:", err);
         // Fallback to hardcoded time slots
-        setTimeSlots([
-          { time: "9:00 AM", value: "9:00 AM", disabled: false },
-          { time: "10:00 AM", value: "10:00 AM", disabled: false },
-          { time: "11:00 AM", value: "11:00 AM", disabled: false },
-          { time: "12:00 PM", value: "12:00 PM", disabled: false },
-          { time: "1:00 PM", value: "1:00 PM", disabled: false },
-          { time: "2:00 PM", value: "2:00 PM", disabled: false },
-          { time: "3:00 PM", value: "3:00 PM", disabled: false },
-          { time: "4:00 PM", value: "4:00 PM", disabled: false },
-          { time: "5:00 PM", value: "5:00 PM", disabled: false },
-          { time: "6:00 PM", value: "6:00 PM", disabled: false },
-          { time: "7:00 PM", value: "7:00 PM", disabled: false },
-          { time: "8:00 PM", value: "8:00 PM", disabled: false },
-        ]);
+        setTimeSlots
       } finally {
         setLoadingTimeSlots(false);
       }

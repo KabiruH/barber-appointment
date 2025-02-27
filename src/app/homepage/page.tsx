@@ -38,35 +38,35 @@ export default function HomePage() {
             title="Classic Haircut"
             price="Kes500"
             description="Precision cut with attention to detail, includes hot towel and styling"
-            duration="30 min"
+            duration="60 min"
           />
           
           <ServiceCard 
             title="Beard Trim"
             price="Kes400"
             description="Shape and style your beard with precision tools and techniques"
-            duration="20 min"
+            duration="60 min"
           />
           
           <ServiceCard 
             title="Hot Towel Shave"
             price="Kes500"
             description="Traditional straight razor shave with hot towel treatment"
-            duration="30 min"
+            duration="60 min"
           />
           
           <ServiceCard 
             title="Haircut & Beard Trim"
             price="Kes500"
             description="Complete package for hair and beard styling"
-            duration="45 min"
+            duration="60 min"
           />
           
           <ServiceCard 
             title="Hair Styling"
             price="Kes500"
             description="Professional styling with premium products"
-            duration="20 min"
+            duration="60 min"
           />
           
           <ServiceCard 
