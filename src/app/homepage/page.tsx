@@ -16,6 +16,11 @@ export default function HomePage() {
           <Button asChild size="lg" className="bg-amber-500 hover:bg-amber-600 text-black">
             <Link href="/book">Book an Appointment</Link>
           </Button>
+
+          <Button asChild size="lg" className="bg-amber-500 hover:bg-amber-600 text-black ml-4">
+            <Link href="/reschedule">Reschedule Appointment</Link>
+          </Button>
+   
         </div>
       </section>
 
