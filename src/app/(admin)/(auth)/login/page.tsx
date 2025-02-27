@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Loader2 } from "lucide-react";
 
 const loginFormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -42,19 +43,30 @@ export default function AdminLoginPage() {
     setIsLoading(true);
     setError(null);
     
-    // In a real app, this would be an API call to authenticate
-    // Mock credentials check for demonstration
-    if (data.email === "admin@example.com" && data.password === "admin123") {
-      // Simulate API delay
-      setTimeout(() => {
-        setIsLoading(false);
-        router.push("/appointments");
-      }, 1000);
-    } else {
-      setTimeout(() => {
-        setIsLoading(false);
-        setError("Invalid email or password");
-      }, 1000);
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        // Login successful
+        router.push('/admin/dashboard');
+        router.refresh(); // Refresh the page to update auth state
+      } else {
+        // Login failed
+        setError(result.message || 'Failed to login. Please check your credentials.');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('An error occurred during login. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -104,15 +116,26 @@ export default function AdminLoginPage() {
                 )}
               />
 
-              <Button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-black" disabled={isLoading}>
-                {isLoading ? "Logging in..." : "Login"}
+              <Button 
+                type="submit" 
+                className="w-full bg-amber-500 hover:bg-amber-600 text-black" 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                    Logging in...
+                  </>
+                ) : (
+                  "Login"
+                )}
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="flex justify-center border-t p-4">
           <Link href="/" className="text-sm text-gray-500 hover:text-amber-600">
-            Return to home
+            Return to website
           </Link>
         </CardFooter>
       </Card>
