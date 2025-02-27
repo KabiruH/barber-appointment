@@ -4,67 +4,21 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { CalendarIcon, CheckCircle2, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { bookingFormSchema } from "./booking-schema";
+import { ServiceSelector } from "./service-selector";
+import { BarberSelector } from "./barber-selector";
+import { DateSelector } from "./date-selector";
+import { TimeSelector } from "./time-selector";
+import { CustomerDetailsFields } from "./customer-details-fields";
+import { BookingSummary } from "./booking-summary";
+import { BookingConfirmation } from "./booking-confirmation";
 
-// Type definitions
-type Service = {
-  id: string;
-  name: string;
-  price: number;
-  duration: number;
-  description?: string;
-};
-
-type Barber = {
-  id: string;
-  name: string;
-};
-
-type TimeSlot = {
-  time: string;
-  value: string;
-  disabled: boolean;
-};
-
-// Form validation schema
-const bookingFormSchema = z.object({
-  serviceId: z.string({ required_error: "Please select a service" }),
-  barberId: z.string({ required_error: "Please select a barber" }),
-  date: z.date({ required_error: "Please select a date" }),
-  time: z.string({ required_error: "Please select a time" }),
-  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  phone: z.string().optional(),
-  notes: z.string().optional(),
-});
+import { Service, Barber, TimeSlot } from "@/types/booking";
 
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
 
@@ -290,45 +244,17 @@ export default function BookingForm() {
 
   if (bookingComplete) {
     return (
-      <div className="space-y-6 bg-white p-6 rounded-lg border">
-        <Alert className="bg-green-50 border-green-200">
-          <CheckCircle2 className="h-5 w-5 text-green-600" />
-          <AlertTitle className="text-green-800 font-bold">Booking Confirmed!</AlertTitle>
-          <AlertDescription className="text-green-700">
-            Your appointment has been successfully booked. A confirmation email has been sent to your email address.
-          </AlertDescription>
-        </Alert>
-        
-        <Card className="p-6 border-green-100">
-          <h3 className="font-bold text-lg mb-4">Booking Details</h3>
-          <div className="space-y-2">
-            <p><span className="font-medium">Reference Number:</span> {referenceNumber}</p>
-            <p><span className="font-medium">Service:</span> {selectedService?.name}</p>
-            <p><span className="font-medium">Barber:</span> {barbers.find(b => b.id === form.getValues().barberId)?.name}</p>
-            <p><span className="font-medium">Date & Time:</span> {format(form.getValues().date, "EEEE, MMMM d, yyyy")} at {form.getValues().time}</p>
-            <p><span className="font-medium">Duration:</span> {selectedService?.duration} minutes</p>
-            <p><span className="font-medium">Customer:</span> {form.getValues().name}</p>
-            <p><span className="font-medium">Email:</span> {form.getValues().email}</p>
-            {form.getValues().phone && <p><span className="font-medium">Phone:</span> {form.getValues().phone}</p>}
-          </div>
-          
-          <div className="mt-6 text-sm text-muted-foreground">
-            <p>Please save your reference number: <strong>{referenceNumber}</strong></p>
-            <p>You'll need this if you want to modify or cancel your appointment.</p>
-          </div>
-          
-          <Button 
-            onClick={() => {
-              setBookingComplete(false);
-              form.reset();
-              setSelectedService(null);
-            }}
-            className="mt-6"
-          >
-            Book Another Appointment
-          </Button>
-        </Card>
-      </div>
+      <BookingConfirmation
+        referenceNumber={referenceNumber}
+        selectedService={selectedService}
+        selectedBarber={barbers.find(b => b.id === form.getValues().barberId)}
+        formValues={form.getValues()}
+        onBookAnother={() => {
+          setBookingComplete(false);
+          form.reset();
+          setSelectedService(null);
+        }}
+      />
     );
   }
 
@@ -345,229 +271,33 @@ export default function BookingForm() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-6">
-              <FormField
-                control={form.control}
-                name="serviceId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Service</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={loadingServices}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={loadingServices ? "Loading services..." : "Select a service"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {services.map((service) => (
-                          <SelectItem key={service.id} value={service.id}>
-                            {service.name} - Kes{service.price}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <ServiceSelector 
+                form={form} 
+                isLoading={loadingServices}
+                services={services} 
               />
 
-              <FormField
-                control={form.control}
-                name="barberId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Barber</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={loadingBarbers}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={loadingBarbers ? "Loading barbers..." : "Select a barber"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {barbers.map((barber) => (
-                          <SelectItem key={barber.id} value={barber.id}>
-                            {barber.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <BarberSelector 
+                form={form} 
+                isLoading={loadingBarbers}
+                barbers={barbers} 
               />
 
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "EEEE, MMMM d, yyyy")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => {
-                            // Disable dates in the past and Sundays
-                            return (
-                              date < new Date(new Date().setHours(0, 0, 0, 0)) ||
-                              date.getDay() === 0
-                            );
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <DateSelector form={form} />
 
-              <FormField
-                control={form.control}
-                name="time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Time</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={loadingTimeSlots || !selectedDate || !selectedBarberId || !selectedServiceId}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={
-                            loadingTimeSlots 
-                              ? "Loading available times..." 
-                              : !selectedDate || !selectedBarberId || !selectedServiceId
-                                ? "Select service, barber, and date first"
-                                : "Select a time slot"
-                          } />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {timeSlots.length > 0 ? (
-                          timeSlots.map((slot) => (
-                            <SelectItem 
-                              key={slot.value} 
-                              value={slot.value}
-                              disabled={slot.disabled}
-                            >
-                              {slot.time}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem 
-                            value="no-slots" 
-                            disabled={true}
-                          >
-                            No available time slots
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <TimeSelector 
+                form={form} 
+                isLoading={loadingTimeSlots}
+                timeSlots={timeSlots}
+                isDisabled={!selectedDate || !selectedBarberId || !selectedServiceId}
               />
             </div>
 
-            <div className="space-y-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your email" type="email" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone Number (optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your phone number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Additional Notes (optional)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Any special requests or information"
-                        className="resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <CustomerDetailsFields form={form} />
           </div>
 
           {selectedService && (
-            <div className="p-4 bg-amber-50 border border-amber-100 rounded-lg">
-              <h3 className="font-medium text-amber-800 mb-2">Booking Summary</h3>
-              <p className="text-amber-700">Service: {selectedService.name}</p>
-              <p className="text-amber-700">Duration: {selectedService.duration} minutes</p>
-              <p className="text-amber-700">Price: Kes{selectedService.price}</p>
-            </div>
+            <BookingSummary service={selectedService} />
           )}
 
           <Button 
