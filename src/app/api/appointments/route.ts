@@ -195,20 +195,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET endpoint to fetch appointments
+// GET endpoint to fetch appointments - no authentication required
 export async function GET(request: NextRequest) {
   try {
-    // Check if user is authenticated as admin (implement auth check)
-    // This is a simplified example
-    const authToken = request.cookies.get('auth-token')?.value;
-    
-    if (!authToken) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-    
     // Get query parameters
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');

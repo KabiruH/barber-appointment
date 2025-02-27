@@ -7,7 +7,7 @@ import { twMerge } from "tailwind-merge";
  */
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
-} 
+}
 
 /**
  * Generate a unique reference number for appointments
@@ -34,24 +34,4 @@ export function calculateEndTime(startTime: Date, durationMinutes: number): Date
   const endTime = new Date(startTime);
   endTime.setMinutes(endTime.getMinutes() + durationMinutes);
   return endTime;
-}
-
-/**
- * Check if a time slot is available (does not overlap with existing appointments)
- */
-export function isTimeSlotAvailable(
-  startTime: Date,
-  durationMinutes: number,
-  existingAppointments: Array<{ startTime: Date; endTime: Date }>
-): boolean {
-  const endTime = calculateEndTime(startTime, durationMinutes);
-  
-  return !existingAppointments.some(appointment => {
-    // Check if the new appointment overlaps with any existing appointment
-    return (
-      (startTime >= appointment.startTime && startTime < appointment.endTime) ||
-      (endTime > appointment.startTime && endTime <= appointment.endTime) ||
-      (startTime <= appointment.startTime && endTime >= appointment.endTime)
-    );
-  });
 }
