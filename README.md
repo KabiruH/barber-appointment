@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Barber Shop Appointment Booking System
+
+A full-stack **Next.js** application for managing appointments at a barber shop. This system allows customers to book appointments online and provides an admin interface for staff to manage bookings and barber schedules.
+
+## Features
+
+### Customer Features
+- Browse available services with pricing
+- Select preferred barber and date
+- View available time slots based on barber availability
+- Book appointments without requiring registration
+- Receive confirmation with a reference number
+
+### Admin Features
+- Secure admin login portal
+- Dashboard to view all appointments
+- Calendar view for daily scheduling
+- Ability to block out time slots (vacations, training, etc.)
+- Manage barbers, services, and business settings
+
+## Tech Stack
+
+- **Frontend:** Next.js 14 with App Router, React 19, TypeScript
+- **UI Components:** shadcn/ui, Tailwind CSS, Lucide React icons
+- **Backend:** Next.js API Routes
+- **Database:** PostgreSQL with Prisma ORM
+- **Authentication:** Custom auth implementation with secure cookies
+- **Form Handling:** React Hook Form with Zod validation
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+- **Node.js** 18.17.0 or later
+- **PostgreSQL** database
+- **npm** or **yarn**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### Installation
+
+#### 1. Clone the repository:
+```sh
+git clone https://github.com/kabiruH/barber-shop-appointment.git
+cd barber-shop-appointment
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+#### 2. Install dependencies:
+```sh
+npm install  # or yarn install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+#### 3. Set up environment variables:
+Create a `.env` file in the root directory and add the following:
+```env
+DATABASE_URL=your_postgresql_connection_string
+NEXTAUTH_SECRET=your_secret_key
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+#### 4. Run database migrations:
+```sh
+npx prisma migrate dev --name init
+```
 
-## Learn More
+#### 5. Start the development server:
+```sh
+npm run dev  # or yarn dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+The application should now be running at `http://localhost:3000`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Usage
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Customers:** Visit the website, select a service, choose a barber and time, and confirm the appointment.
+- **Admins:** Log in to manage appointments, barbers, and business settings.
 
-## Deploy on Vercel
+## License
+This project is open-source and available under the MIT License.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Feel free to reach out at huriakelvin@gmail.com and remember to leave a star! 🚀
+
