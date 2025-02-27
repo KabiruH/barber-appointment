@@ -56,7 +56,7 @@ export default function AdminLoginPage() {
       
       if (response.ok && result.success) {
         // Login successful
-        router.push('/admin/dashboard');
+        router.push('/appointments');
         router.refresh(); // Refresh the page to update auth state
       } else {
         // Login failed
