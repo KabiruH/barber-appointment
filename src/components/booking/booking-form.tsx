@@ -17,19 +17,17 @@ import { TimeSelector } from "./time-selector";
 import { CustomerDetailsFields } from "./customer-details-fields";
 import { BookingSummary } from "./booking-summary";
 import { BookingConfirmation } from "./booking-confirmation";
-
-import { Service, Barber, TimeSlot } from "@/types/booking";
+import { SERVICES, getServiceById, Service } from "@/lib/services";
+import { Barber, TimeSlot } from "@/types/booking";
 
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
 
 export default function BookingForm() {
   // State for data from APIs
-  const [services, setServices] = useState<Service[]>([]);
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   
   // State for loading indicators
-  const [loadingServices, setLoadingServices] = useState(true);
   const [loadingBarbers, setLoadingBarbers] = useState(true);
   const [loadingTimeSlots, setLoadingTimeSlots] = useState(false);
   
@@ -56,34 +54,7 @@ export default function BookingForm() {
   const selectedBarberId = form.watch("barberId");
   const selectedDate = form.watch("date");
   
-  // Fetch services on component mount
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        setLoadingServices(true);
-        const response = await fetch('/api/services?activeOnly=true');
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-          setServices(result.data);
-        } else {
-          console.error("Failed to fetch services:", result.message);
-          // Fallback to hardcoded services if API fails
-          setServices
-        }
-      } catch (err) {
-        console.error("Error fetching services:", err);
-        // Fallback to hardcoded services
-        setServices
-      } finally {
-        setLoadingServices(false);
-      }
-    };
-    
-    fetchServices();
-  }, []);
-  
-  // Fetch barbers on component mount
+  // Fetch barbers on component mount (all barbers can do all services)
   useEffect(() => {
     const fetchBarbers = async () => {
       try {
@@ -95,13 +66,11 @@ export default function BookingForm() {
           setBarbers(result.data);
         } else {
           console.error("Failed to fetch barbers:", result.message);
-          // Fallback to hardcoded barbers if API fails
-          setBarbers
+          setError("Failed to load barbers. Please refresh the page.");
         }
       } catch (err) {
         console.error("Error fetching barbers:", err);
-        // Fallback to hardcoded barbers
-        setBarbers
+        setError("Failed to load barbers. Please check your connection and try again.");
       } finally {
         setLoadingBarbers(false);
       }
@@ -110,31 +79,46 @@ export default function BookingForm() {
     fetchBarbers();
   }, []);
   
+  // Update selected service when service ID changes
+  useEffect(() => {
+    if (selectedServiceId) {
+      const service = getServiceById(selectedServiceId);
+      setSelectedService(service || null);
+    } else {
+      setSelectedService(null);
+    }
+  }, [selectedServiceId]);
+  
   // Fetch available time slots when service, barber, and date are selected
   useEffect(() => {
     const fetchTimeSlots = async () => {
       if (!selectedServiceId || !selectedBarberId || !selectedDate) {
+        setTimeSlots([]);
+        return;
+      }
+      
+      const service = getServiceById(selectedServiceId);
+      if (!service) {
+        setTimeSlots([]);
         return;
       }
       
       try {
         setLoadingTimeSlots(true);
         const response = await fetch(
-          `/api/available-slots?date=${selectedDate.toISOString()}&barberId=${selectedBarberId}&serviceId=${selectedServiceId}`
+          `/api/available-slots?date=${selectedDate.toISOString()}&barberId=${selectedBarberId}&duration=${service.duration}`
         );
         const result = await response.json();
         
         if (response.ok && result.success) {
-          setTimeSlots(result.data.availableSlots);
+          setTimeSlots(result.data.availableSlots || []);
         } else {
           console.error("Failed to fetch time slots:", result.message);
-          // Fallback to hardcoded time slots if API fails
-          setTimeSlots
+          setTimeSlots([]);
         }
       } catch (err) {
         console.error("Error fetching time slots:", err);
-        // Fallback to hardcoded time slots
-        setTimeSlots
+        setTimeSlots([]);
       } finally {
         setLoadingTimeSlots(false);
       }
@@ -143,19 +127,16 @@ export default function BookingForm() {
     fetchTimeSlots();
   }, [selectedServiceId, selectedBarberId, selectedDate]);
   
-  // Update selected service when service ID changes
-  useEffect(() => {
-    if (selectedServiceId) {
-      const service = services.find(s => s.id === selectedServiceId);
-      setSelectedService(service || null);
-    } else {
-      setSelectedService(null);
-    }
-  }, [selectedServiceId, services]);
-  
   async function onSubmit(data: BookingFormValues) {
     setIsSubmitting(true);
     setError(null);
+    
+    const service = getServiceById(data.serviceId);
+    if (!service) {
+      setError("Invalid service selected");
+      setIsSubmitting(false);
+      return;
+    }
     
     try {
       // Make API call to create appointment
@@ -165,7 +146,9 @@ export default function BookingForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          serviceId: data.serviceId,
+          serviceName: service.name,
+          servicePrice: service.price,
+          serviceDuration: service.duration,
           barberId: data.barberId,
           date: data.date.toISOString(),
           time: data.time,
@@ -205,6 +188,7 @@ export default function BookingForm() {
           setBookingComplete(false);
           form.reset();
           setSelectedService(null);
+          setError(null);
         }}
       />
     );
@@ -225,17 +209,20 @@ export default function BookingForm() {
             <div className="space-y-6">
               <ServiceSelector 
                 form={form} 
-                isLoading={loadingServices}
-                services={services} 
+                services={SERVICES}
               />
 
               <BarberSelector 
                 form={form} 
                 isLoading={loadingBarbers}
-                barbers={barbers} 
+                barbers={barbers}
+                disabled={!selectedServiceId}
               />
 
-              <DateSelector form={form} />
+              <DateSelector 
+                form={form}
+                disabled={!selectedBarberId}
+              />
 
               <TimeSelector 
                 form={form} 
@@ -255,7 +242,7 @@ export default function BookingForm() {
           <Button 
             type="submit" 
             className="w-full md:w-auto bg-amber-500 hover:bg-amber-600 text-black" 
-            disabled={isSubmitting}
+            disabled={isSubmitting || !form.formState.isValid}
           >
             {isSubmitting ? (
               <span className="flex items-center">

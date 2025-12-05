@@ -1,20 +1,25 @@
-// Type definitions for booking system
-
-export type Service = {
-    id: string;
-    name: string;
-    price: number;
-    duration: number;
-    description?: string;
-  };
+// types/booking.ts
+export interface Service {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  duration: number;
+}
   
-  export type Barber = {
-    id: string;
-    name: string;
-  };
+export interface Barber {
+  id: string;
+  name: string;
+  email: string | null;
+  bio: string | null;
+  imageUrl: string | null;
+  role?: 'ADMIN' | 'BARBER';
+  createdAt: Date;
+  updatedAt: Date;
+}
   
-  export type TimeSlot = {
-    time: string;
-    value: string;
-    disabled: boolean;
-  };
+export interface TimeSlot {
+  time: string;
+  value: string;
+  disabled: boolean;
+}

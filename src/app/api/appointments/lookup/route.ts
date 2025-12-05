@@ -1,3 +1,4 @@
+// app/api/appointments/lookup/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
@@ -24,14 +25,9 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
-          },
-        },
-        service: {
-          select: {
-            id: true,
-            name: true,
-            duration: true,
-            price: true,
+            email: true,
+            bio: true,
+            imageUrl: true,
           },
         },
       },
@@ -72,10 +68,9 @@ export async function GET(request: NextRequest) {
       notes: appointment.notes,
       barberId: appointment.barberId,
       barberName: appointment.barber.name,
-      serviceId: appointment.serviceId,
-      serviceName: appointment.service.name,
-      servicePrice: appointment.service.price,
-      serviceDuration: appointment.service.duration,
+      serviceName: appointment.serviceName,
+      servicePrice: appointment.servicePrice.toString(), // Convert Decimal to string
+      serviceDuration: appointment.serviceDuration,
       status: appointment.status,
     };
     

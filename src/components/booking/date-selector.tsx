@@ -1,3 +1,4 @@
+//components/booking/date-selector.tsx
 import { UseFormReturn } from "react-hook-form";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
@@ -20,9 +21,10 @@ import { BookingFormValues } from "./booking-schema";
 
 interface DateSelectorProps {
   form: UseFormReturn<BookingFormValues>;
+  disabled?: boolean; // Added this prop
 }
 
-export function DateSelector({ form }: DateSelectorProps) {
+export function DateSelector({ form, disabled }: DateSelectorProps) {
   return (
     <FormField
       control={form.control}
@@ -35,15 +37,17 @@ export function DateSelector({ form }: DateSelectorProps) {
               <FormControl>
                 <Button
                   variant="outline"
+                  disabled={disabled} // Added disabled prop
                   className={cn(
                     "pl-3 text-left font-normal",
-                    !field.value && "text-muted-foreground"
+                    !field.value && "text-muted-foreground",
+                    disabled && "cursor-not-allowed opacity-50"
                   )}
                 >
                   {field.value ? (
                     format(field.value, "EEEE, MMMM d, yyyy")
                   ) : (
-                    <span>Pick a date</span>
+                    <span>{disabled ? "Select a barber first" : "Pick a date"}</span>
                   )}
                   <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                 </Button>

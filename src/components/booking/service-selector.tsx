@@ -13,16 +13,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Service } from "@/types/booking";
+import { Service } from "@/lib/services"; // Changed import
 import { BookingFormValues } from "./booking-schema";
+import { Clock } from "lucide-react";
 
 interface ServiceSelectorProps {
   form: UseFormReturn<BookingFormValues>;
-  isLoading: boolean;
-  services: Service[];
+  services: Service[]; // Removed isLoading since services are hardcoded
 }
 
-export function ServiceSelector({ form, isLoading, services }: ServiceSelectorProps) {
+export function ServiceSelector({ form, services }: ServiceSelectorProps) {
   return (
     <FormField
       control={form.control}
@@ -30,20 +30,22 @@ export function ServiceSelector({ form, isLoading, services }: ServiceSelectorPr
       render={({ field }) => (
         <FormItem>
           <FormLabel>Service</FormLabel>
-          <Select
-            onValueChange={field.onChange}
-            defaultValue={field.value}
-            disabled={isLoading}
-          >
+          <Select onValueChange={field.onChange} defaultValue={field.value}>
             <FormControl>
               <SelectTrigger>
-                <SelectValue placeholder={isLoading ? "Loading services..." : "Select a service"} />
+                <SelectValue placeholder="Select a service" />
               </SelectTrigger>
             </FormControl>
             <SelectContent>
               {services.map((service) => (
                 <SelectItem key={service.id} value={service.id}>
-                  {service.name} - Kes{service.price}
+                  <div className="flex flex-col gap-1 py-1">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="font-medium">{service.name}</span>
+                      <span className="text-amber-600 font-semibold">Kes{service.price}</span>
+                    </div>
+                    
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>

@@ -1,10 +1,14 @@
+// app/api/appointments/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
+import { getServiceById } from "@/lib/services";
 
 // Validation schema for appointment updates
 const updateAppointmentSchema = z.object({
-  serviceId: z.string().optional(),
+  serviceName: z.string().optional(),
+  servicePrice: z.number().optional(),
+  serviceDuration: z.number().optional(),
   barberId: z.string().optional(),
   date: z.string().optional(), // ISO date string
   time: z.string().optional(), // Time in format "1:00 PM"
@@ -16,17 +20,14 @@ const updateAppointmentSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+{ params }: { params: Promise<{ id: string }> } 
 ) {
   try {
-    const appointmentId = params.id;
+     const { id: appointmentId } = await params; 
     
     // Find the existing appointment
     const existingAppointment = await prisma.appointment.findUnique({
       where: { id: appointmentId },
-      include: {
-        service: true,
-      },
     });
     
     if (!existingAppointment) {
@@ -62,7 +63,9 @@ export async function PATCH(
     }
     
     const { 
-      serviceId, 
+      serviceName,
+      servicePrice,
+      serviceDuration,
       barberId, 
       date, 
       time, 
@@ -80,6 +83,11 @@ export async function PATCH(
     if (email) updateData.customerEmail = email;
     if (phone !== undefined) updateData.customerPhone = phone;
     if (notes !== undefined) updateData.notes = notes;
+    
+    // Service updates
+    if (serviceName) updateData.serviceName = serviceName;
+    if (servicePrice !== undefined) updateData.servicePrice = servicePrice;
+    if (serviceDuration !== undefined) updateData.serviceDuration = serviceDuration;
     
     // Handle date/time updates
     if (date && time) {
@@ -108,26 +116,11 @@ export async function PATCH(
       const startTime = new Date(dateParts);
       startTime.setHours(hours, minutes, 0, 0);
       
-      // Get the service to calculate end time
-      let service = existingAppointment.service;
-      
-      // If service is changing, get the new service
-      if (serviceId && serviceId !== existingAppointment.serviceId) {
-        const newService = await prisma.service.findUnique({
-          where: { id: serviceId },
-        });
-        
-        if (!newService) {
-          return NextResponse.json(
-            { success: false, message: "Service not found" },
-            { status: 404 }
-          );
-        }
-        service = newService; // Ensured to be non-null at this point
-      }
+      // Get service duration (use updated duration if provided, otherwise use existing)
+      const duration = serviceDuration || existingAppointment.serviceDuration;
       
       // Calculate end time based on service duration
-      const endTime = new Date(startTime.getTime() + service.duration * 60000);
+      const endTime = new Date(startTime.getTime() + duration * 60000);
       
       // Set the new start and end times
       updateData.startTime = startTime;
@@ -140,21 +133,18 @@ export async function PATCH(
           barberId: barberId || existingAppointment.barberId,
           status: { notIn: ["CANCELLED", "NO_SHOW"] },
           OR: [
-            // New appointment starts during existing appointment
             {
               AND: [
                 { startTime: { lte: startTime } },
                 { endTime: { gt: startTime } },
               ],
             },
-            // New appointment ends during existing appointment
             {
               AND: [
                 { startTime: { lt: endTime } },
                 { endTime: { gte: endTime } },
               ],
             },
-            // New appointment completely overlaps existing appointment
             {
               AND: [
                 { startTime: { gte: startTime } },
@@ -172,26 +162,23 @@ export async function PATCH(
         );
       }
       
-      // Check for time blockouts
+      // Check for time blockouts - Changed barberId to userId
       const conflictingBlockouts = await prisma.timeBlockout.findMany({
         where: {
-          barberId: barberId || existingAppointment.barberId,
+          userId: barberId || existingAppointment.barberId,
           OR: [
-            // Blockout starts during appointment
             {
               AND: [
                 { startTime: { gte: startTime } },
                 { startTime: { lt: endTime } },
               ],
             },
-            // Blockout ends during appointment
             {
               AND: [
                 { endTime: { gt: startTime } },
                 { endTime: { lte: endTime } },
               ],
             },
-            // Blockout covers entire appointment
             {
               AND: [
                 { startTime: { lte: startTime } },
@@ -210,9 +197,22 @@ export async function PATCH(
       }
     }
     
-    // Update barber and service IDs if provided
-    if (barberId) updateData.barberId = barberId;
-    if (serviceId) updateData.serviceId = serviceId;
+    // Update barber if provided
+    if (barberId) {
+      // Verify barber exists and is active
+      const barber = await prisma.user.findUnique({
+        where: { id: barberId },
+      });
+      
+      if (!barber || barber.role !== 'BARBER' || !barber.isActive) {
+        return NextResponse.json(
+          { success: false, message: "Barber not found or inactive" },
+          { status: 404 }
+        );
+      }
+      
+      updateData.barberId = barberId;
+    }
     
     // Update the appointment
     const updatedAppointment = await prisma.appointment.update({
@@ -223,14 +223,7 @@ export async function PATCH(
           select: {
             id: true,
             name: true,
-          },
-        },
-        service: {
-          select: {
-            id: true,
-            name: true,
-            duration: true,
-            price: true,
+            email: true,
           },
         },
       },
@@ -248,14 +241,13 @@ export async function PATCH(
       notes: updatedAppointment.notes,
       barberId: updatedAppointment.barberId,
       barberName: updatedAppointment.barber.name,
-      serviceId: updatedAppointment.serviceId,
-      serviceName: updatedAppointment.service.name,
-      servicePrice: updatedAppointment.service.price,
-      serviceDuration: updatedAppointment.service.duration,
+      serviceName: updatedAppointment.serviceName,
+      servicePrice: updatedAppointment.servicePrice,
+      serviceDuration: updatedAppointment.serviceDuration,
       status: updatedAppointment.status,
     };
     
-    // In a real application, you would send a confirmation email here
+    // TODO: Send update confirmation email here
     
     return NextResponse.json(
       { 

@@ -1,22 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
+// app/api/auth/logout/route.ts
+import { NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
-    // Clear the auth cookie
     return NextResponse.json(
-      { success: true, message: "Logged out successfully" },
+      { success: true, message: 'Logged out successfully' },
       {
         status: 200,
         headers: {
-          // Set the auth cookie to expire immediately
-          'Set-Cookie': `auth-token=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`
+          'Set-Cookie': 'auth-token=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0'
         }
       }
     );
   } catch (error) {
-    console.error("Logout error:", error);
+    console.error('Logout error:', error);
     return NextResponse.json(
-      { success: false, message: "An error occurred during logout" },
+      { success: false, message: 'Logout failed' },
       { status: 500 }
     );
   }

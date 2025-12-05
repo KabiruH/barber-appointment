@@ -1,58 +1,37 @@
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-model Admin {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Barber {
-  id           String        @id @default(cuid())
+model User {
+  id           String         @id @default(cuid())
   name         String
-  email        String?       @unique
-  bio          String?
+  email        String         @unique
+  password     String
+  role         UserRole       @default(BARBER)
+  bio          String?        @db.Text
   imageUrl     String?
+  isActive     Boolean        @default(true)
+  
+  // Relations (only for barbers)
   appointments Appointment[]
-  services     BarbersOnServices[]
   availability Availability[]
   blockouts    TimeBlockout[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-}
-
-model Service {
-  id          String     @id @default(cuid())
-  name        String
-  description String?
-  price       Decimal    @db.Decimal(10, 2)
-  duration    Int        // Duration in minutes
-  imageUrl    String?
-  barbers     BarbersOnServices[]
-  appointments Appointment[]
-  active      Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-}
-
-model BarbersOnServices {
-  barber      Barber     @relation(fields: [barberId], references: [id])
-  barberId    String
-  service     Service    @relation(fields: [serviceId], references: [id])
-  serviceId   String
-  price       Decimal?   @db.Decimal(10, 2) // Optional override of service price
   
-  @@id([barberId, serviceId])
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  
+  @@index([email])
+  @@index([role])
+}
+
+enum UserRole {
+  ADMIN
+  BARBER
 }
 
 model Appointment {
@@ -61,22 +40,29 @@ model Appointment {
   startTime         DateTime
   endTime           DateTime
   status            AppointmentStatus @default(PENDING)
-  notes             String?
+  notes             String?           @db.Text
   
   customerName      String
   customerEmail     String
   customerPhone     String?
   
-  barber            Barber            @relation(fields: [barberId], references: [id])
+  barber            User              @relation(fields: [barberId], references: [id], onDelete: Cascade)
   barberId          String
   
-  service           Service           @relation(fields: [serviceId], references: [id])
-  serviceId         String
+  // Service details stored directly (no foreign key)
+  serviceName       String
+  servicePrice      Decimal           @db.Decimal(10, 2)
+  serviceDuration   Int               // Duration in minutes
   
-  emailReminderSent Boolean          @default(false)
+  emailReminderSent Boolean           @default(false)
   
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  @@index([barberId])
+  @@index([startTime])
+  @@index([status])
+  @@index([referenceNumber])
 }
 
 enum AppointmentStatus {
@@ -88,28 +74,32 @@ enum AppointmentStatus {
 }
 
 model Availability {
-  id         String    @id @default(cuid())
-  barber     Barber    @relation(fields: [barberId], references: [id])
-  barberId   String
-  dayOfWeek  Int       // 0-6, where 0 is Sunday
-  startTime  String    // Format: "HH:MM" 
-  endTime    String    // Format: "HH:MM"
-  isWorking  Boolean   @default(true)
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  dayOfWeek  Int      // 0-6, where 0 is Sunday
+  startTime  String   // Format: "HH:MM" 
+  endTime    String   // Format: "HH:MM"
+  isWorking  Boolean  @default(true)
   
-  @@unique([barberId, dayOfWeek])
+  @@unique([userId, dayOfWeek])
+  @@index([userId])
 }
 
 model TimeBlockout {
   id            String          @id @default(cuid())
-  barber        Barber          @relation(fields: [barberId], references: [id])
-  barberId      String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
   startTime     DateTime
   endTime       DateTime
-  reason        String?
+  reason        String?         @db.Text
   recurring     RecurringType?
-  occurrences   Int?            // Only used if recurring is not null
+  occurrences   Int?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+  
+  @@index([userId])
+  @@index([startTime, endTime])
 }
 
 enum RecurringType {
@@ -124,12 +114,12 @@ model Settings {
   shopAddress              String?
   shopPhone                String?
   shopEmail                String?
-  shopHoursStart           String   @default("09:00") // Format: "HH:MM"
-  shopHoursEnd             String   @default("18:00") // Format: "HH:MM"
-  timeSlotInterval         Int      @default(30)      // Default 30-minute slots
-  minAdvanceBookingHours   Int      @default(1)       // How many hours ahead customers must book
-  maxAdvanceBookingDays    Int      @default(30)      // How many days ahead customers can book
-  reminderHours            Int      @default(24)      // Send reminder 24 hours before appointment
+  shopHoursStart           String   @default("09:00")
+  shopHoursEnd             String   @default("18:00")
+  timeSlotInterval         Int      @default(30)
+  minAdvanceBookingHours   Int      @default(1)
+  maxAdvanceBookingDays    Int      @default(30)
+  reminderHours            Int      @default(24)
   emailConfirmationEnabled Boolean  @default(true)
   emailReminderEnabled     Boolean  @default(true)
   updatedAt                DateTime @updatedAt

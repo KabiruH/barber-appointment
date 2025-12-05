@@ -31,9 +31,9 @@ import { BarberSelector } from "./barber-selector";
 import { DateSelector } from "./date-selector";
 import { TimeSelector } from "./time-selector";
 import { BookingSummary } from "./booking-summary";
-import { BookingConfirmation } from "./booking-confirmation";
 
-import { Service, Barber, TimeSlot } from "@/types/booking";
+import { SERVICES, getServiceById, Service } from "@/lib/services";
+import { Barber, TimeSlot } from "@/types/booking";
 import { bookingFormSchema, BookingFormValues } from "./booking-schema";
 
 // Schema for reference number lookup form
@@ -56,9 +56,8 @@ type AppointmentDetails = {
   notes?: string;
   barberId: string;
   barberName: string;
-  serviceId: string;
   serviceName: string;
-  servicePrice: number;
+  servicePrice: string;
   serviceDuration: number;
   status: string;
 };
@@ -71,11 +70,9 @@ export default function RescheduleForm() {
   const [searchError, setSearchError] = useState<string | null>(null);
   
   // States for booking form
-  const [services, setServices] = useState<Service[]>([]);
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   
-  const [loadingServices, setLoadingServices] = useState(true);
   const [loadingBarbers, setLoadingBarbers] = useState(true);
   const [loadingTimeSlots, setLoadingTimeSlots] = useState(false);
   
@@ -102,45 +99,7 @@ export default function RescheduleForm() {
   const selectedBarberId = bookingForm.watch("barberId");
   const selectedDate = bookingForm.watch("date");
   
-  // Fetch services on component mount
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        setLoadingServices(true);
-        const response = await fetch('/api/services?activeOnly=true');
-        const result = await response.json();
-        
-        if (response.ok && result.success) {
-          setServices(result.data);
-        } else {
-          console.error("Failed to fetch services:", result.message);
-          // Fallback data handled in error case
-          setServices([
-            { id: "haircut", name: "Classic Haircut", price: 500, duration: 60 },
-            { id: "beard", name: "Beard Trim", price: 400, duration: 60 },
-            { id: "shave", name: "Hot Towel Shave", price: 500, duration: 60 },
-            { id: "combo", name: "Haircut & Beard Trim", price: 500, duration: 60 },
-            { id: "styling", name: "Hair Styling", price: 500, duration: 60 },
-          ]);
-        }
-      } catch (err) {
-        console.error("Error fetching services:", err);
-        setServices([
-          { id: "haircut", name: "Classic Haircut", price: 500, duration: 60 },
-          { id: "beard", name: "Beard Trim", price: 400, duration: 60 },
-          { id: "shave", name: "Hot Towel Shave", price: 500, duration: 60 },
-          { id: "combo", name: "Haircut & Beard Trim", price: 500, duration: 60 },
-          { id: "styling", name: "Hair Styling", price: 500, duration: 60 },
-        ]);
-      } finally {
-        setLoadingServices(false);
-      }
-    };
-    
-    fetchServices();
-  }, []);
-  
-  // Fetch barbers on component mount
+  // Fetch barbers on component mount (all barbers can do all services)
   useEffect(() => {
     const fetchBarbers = async () => {
       try {
@@ -152,19 +111,9 @@ export default function RescheduleForm() {
           setBarbers(result.data);
         } else {
           console.error("Failed to fetch barbers:", result.message);
-          setBarbers([
-            { id: "james", name: "James Wilson" },
-            { id: "sarah", name: "Sarah Johnson" },
-            { id: "miguel", name: "Miguel Rodriguez" },
-          ]);
         }
       } catch (err) {
         console.error("Error fetching barbers:", err);
-        setBarbers([
-          { id: "james", name: "James Wilson" },
-          { id: "sarah", name: "Sarah Johnson" },
-          { id: "miguel", name: "Miguel Rodriguez" },
-        ]);
       } finally {
         setLoadingBarbers(false);
       }
@@ -173,45 +122,46 @@ export default function RescheduleForm() {
     fetchBarbers();
   }, []);
   
+  // Update selected service when service ID changes
+  useEffect(() => {
+    if (selectedServiceId) {
+      const service = getServiceById(selectedServiceId);
+      setSelectedService(service || null);
+    } else {
+      setSelectedService(null);
+    }
+  }, [selectedServiceId]);
+  
   // Fetch available time slots when service, barber, and date are selected
   useEffect(() => {
     const fetchTimeSlots = async () => {
       if (!selectedServiceId || !selectedBarberId || !selectedDate) {
+        setTimeSlots([]);
+        return;
+      }
+      
+      const service = getServiceById(selectedServiceId);
+      if (!service) {
+        setTimeSlots([]);
         return;
       }
       
       try {
         setLoadingTimeSlots(true);
         const response = await fetch(
-          `/api/available-slots?date=${selectedDate.toISOString()}&barberId=${selectedBarberId}&serviceId=${selectedServiceId}`
+          `/api/available-slots?date=${selectedDate.toISOString()}&barberId=${selectedBarberId}&duration=${service.duration}`
         );
         const result = await response.json();
         
         if (response.ok && result.success) {
-          setTimeSlots(result.data.availableSlots);
+          setTimeSlots(result.data.availableSlots || []);
         } else {
           console.error("Failed to fetch time slots:", result.message);
-          setTimeSlots([
-            { time: "9:00 AM", value: "9:00 AM", disabled: false },
-            { time: "10:00 AM", value: "10:00 AM", disabled: false },
-            { time: "11:00 AM", value: "11:00 AM", disabled: false },
-            { time: "12:00 PM", value: "12:00 PM", disabled: false },
-            { time: "1:00 PM", value: "1:00 PM", disabled: false },
-            { time: "2:00 PM", value: "2:00 PM", disabled: false },
-            { time: "3:00 PM", value: "3:00 PM", disabled: false },
-          ]);
+          setTimeSlots([]);
         }
       } catch (err) {
         console.error("Error fetching time slots:", err);
-        setTimeSlots([
-          { time: "9:00 AM", value: "9:00 AM", disabled: false },
-          { time: "10:00 AM", value: "10:00 AM", disabled: false },
-          { time: "11:00 AM", value: "11:00 AM", disabled: false },
-          { time: "12:00 PM", value: "12:00 PM", disabled: false },
-          { time: "1:00 PM", value: "1:00 PM", disabled: false },
-          { time: "2:00 PM", value: "2:00 PM", disabled: false },
-          { time: "3:00 PM", value: "3:00 PM", disabled: false },
-        ]);
+        setTimeSlots([]);
       } finally {
         setLoadingTimeSlots(false);
       }
@@ -219,16 +169,6 @@ export default function RescheduleForm() {
     
     fetchTimeSlots();
   }, [selectedServiceId, selectedBarberId, selectedDate]);
-  
-  // Update selected service when service ID changes
-  useEffect(() => {
-    if (selectedServiceId) {
-      const service = services.find(s => s.id === selectedServiceId);
-      setSelectedService(service || null);
-    } else {
-      setSelectedService(null);
-    }
-  }, [selectedServiceId, services]);
   
   // Look up appointment by reference number
   async function onLookupSubmit(data: ReferenceFormValues) {
@@ -250,8 +190,11 @@ export default function RescheduleForm() {
         // Convert appointment time to format like "9:00 AM"
         const appointmentTime = format(appointmentDate, "h:mm a");
         
+        // Find the matching service from hardcoded services by name
+        const matchingService = SERVICES.find(s => s.name === result.data.serviceName);
+        
         bookingForm.reset({
-          serviceId: result.data.serviceId,
+          serviceId: matchingService?.id || SERVICES[0].id, // Default to first service if not found
           barberId: result.data.barberId,
           date: appointmentDate,
           time: appointmentTime,
@@ -280,6 +223,13 @@ export default function RescheduleForm() {
     setIsSubmitting(true);
     setUpdateError(null);
     
+    const service = getServiceById(data.serviceId);
+    if (!service) {
+      setUpdateError("Invalid service selected");
+      setIsSubmitting(false);
+      return;
+    }
+    
     try {
       // API call to update appointment
       const response = await fetch(`/api/appointments/${appointmentDetails.id}`, {
@@ -288,7 +238,9 @@ export default function RescheduleForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          serviceId: data.serviceId,
+          serviceName: service.name,
+          servicePrice: service.price,
+          serviceDuration: service.duration,
           barberId: data.barberId,
           date: data.date.toISOString(),
           time: data.time,
@@ -304,19 +256,31 @@ export default function RescheduleForm() {
       if (response.ok && result.success) {
         // Update completed successfully
         setUpdateComplete(true);
+        
+        // Parse time for the new appointment
+        const timeParts = data.time.match(/(\d+):(\d+) ([AP]M)/);
+        let hours = parseInt(timeParts![1]);
+        const minutes = parseInt(timeParts![2]);
+        const ampm = timeParts![3];
+        
+        if (ampm === "PM" && hours !== 12) hours += 12;
+        else if (ampm === "AM" && hours === 12) hours = 0;
+        
+        const newStartTime = new Date(data.date);
+        newStartTime.setHours(hours, minutes, 0, 0);
+        
+        const newEndTime = new Date(newStartTime.getTime() + service.duration * 60000);
+        
         // Update local appointment details
         setAppointmentDetails({
           ...appointmentDetails,
-          serviceId: data.serviceId,
-          serviceName: services.find(s => s.id === data.serviceId)?.name || appointmentDetails.serviceName,
-          serviceDuration: services.find(s => s.id === data.serviceId)?.duration || appointmentDetails.serviceDuration,
-          servicePrice: services.find(s => s.id === data.serviceId)?.price || appointmentDetails.servicePrice,
+          serviceName: service.name,
+          serviceDuration: service.duration,
+          servicePrice: service.price.toString(),
           barberId: data.barberId,
           barberName: barbers.find(b => b.id === data.barberId)?.name || appointmentDetails.barberName,
-          startTime: new Date(data.date.setHours(
-            parseInt(data.time.split(':')[0]) + (data.time.includes('PM') && data.time.split(':')[0] !== '12' ? 12 : 0),
-            parseInt(data.time.split(':')[1])
-          )).toISOString(),
+          startTime: newStartTime.toISOString(),
+          endTime: newEndTime.toISOString(),
           customerName: data.name,
           customerEmail: data.email,
           customerPhone: data.phone,
@@ -339,6 +303,8 @@ export default function RescheduleForm() {
     setAppointmentFound(false);
     setAppointmentDetails(null);
     setUpdateComplete(false);
+    setSearchError(null);
+    setUpdateError(null);
     referenceForm.reset();
     bookingForm.reset();
   }
@@ -412,23 +378,62 @@ export default function RescheduleForm() {
         
         <Card className="p-6 border-green-100">
           <h3 className="font-bold text-lg mb-4">Updated Appointment Details</h3>
-          <div className="space-y-2">
-            <p><span className="font-medium">Reference Number:</span> {appointmentDetails.referenceNumber}</p>
-            <p><span className="font-medium">Service:</span> {appointmentDetails.serviceName}</p>
-            <p><span className="font-medium">Barber:</span> {appointmentDetails.barberName}</p>
-            <p>
-              <span className="font-medium">Date & Time:</span>{" "}
-              {format(new Date(appointmentDetails.startTime), "EEEE, MMMM d, yyyy 'at' h:mm a")}
-            </p>
-            <p><span className="font-medium">Duration:</span> {appointmentDetails.serviceDuration} minutes</p>
-            <p><span className="font-medium">Customer:</span> {appointmentDetails.customerName}</p>
-            <p><span className="font-medium">Email:</span> {appointmentDetails.customerEmail}</p>
-            {appointmentDetails.customerPhone && <p><span className="font-medium">Phone:</span> {appointmentDetails.customerPhone}</p>}
+          <div className="space-y-3">
+            <div className="flex justify-between items-start border-b pb-2">
+              <span className="font-medium text-gray-600">Reference Number:</span>
+              <span className="font-bold text-amber-600">{appointmentDetails.referenceNumber}</span>
+            </div>
+            
+            <div className="flex justify-between items-start border-b pb-2">
+              <span className="font-medium text-gray-600">Service:</span>
+              <span>{appointmentDetails.serviceName}</span>
+            </div>
+            
+            <div className="flex justify-between items-start border-b pb-2">
+              <span className="font-medium text-gray-600">Price:</span>
+              <span className="font-semibold text-amber-600">Kes {appointmentDetails.servicePrice}</span>
+            </div>
+            
+            <div className="flex justify-between items-start border-b pb-2">
+              <span className="font-medium text-gray-600">Barber:</span>
+              <span>{appointmentDetails.barberName}</span>
+            </div>
+            
+            <div className="flex justify-between items-start border-b pb-2">
+              <span className="font-medium text-gray-600">Date & Time:</span>
+              <span className="text-right">
+                {format(new Date(appointmentDetails.startTime), "EEEE, MMMM d, yyyy")}
+                <br />
+                {format(new Date(appointmentDetails.startTime), "h:mm a")}
+              </span>
+            </div>
+            
+            <div className="flex justify-between items-start border-b pb-2">
+              <span className="font-medium text-gray-600">Duration:</span>
+              <span>{appointmentDetails.serviceDuration} minutes</span>
+            </div>
+            
+            <div className="flex justify-between items-start border-b pb-2">
+              <span className="font-medium text-gray-600">Customer:</span>
+              <span>{appointmentDetails.customerName}</span>
+            </div>
+            
+            <div className="flex justify-between items-start border-b pb-2">
+              <span className="font-medium text-gray-600">Email:</span>
+              <span className="break-all">{appointmentDetails.customerEmail}</span>
+            </div>
+            
+            {appointmentDetails.customerPhone && (
+              <div className="flex justify-between items-start border-b pb-2">
+                <span className="font-medium text-gray-600">Phone:</span>
+                <span>{appointmentDetails.customerPhone}</span>
+              </div>
+            )}
           </div>
           
           <Button 
             onClick={handleReset}
-            className="mt-6"
+            className="mt-6 w-full bg-amber-500 hover:bg-amber-600 text-black"
           >
             Reschedule Another Appointment
           </Button>
@@ -483,17 +488,20 @@ export default function RescheduleForm() {
             <div className="space-y-6">
               <ServiceSelector 
                 form={bookingForm} 
-                isLoading={loadingServices}
-                services={services} 
+                services={SERVICES}
               />
 
               <BarberSelector 
                 form={bookingForm} 
                 isLoading={loadingBarbers}
-                barbers={barbers} 
+                barbers={barbers}
+                disabled={!selectedServiceId}
               />
 
-              <DateSelector form={bookingForm} />
+              <DateSelector 
+                form={bookingForm}
+                disabled={!selectedBarberId}
+              />
 
               <TimeSelector 
                 form={bookingForm} 

@@ -1,11 +1,14 @@
+//api/appointments/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { generateReferenceNumber } from "@/lib/utils";
 
-// Define validation schema for appointment creation
+// Updated validation schema - removed serviceId, added service details
 const appointmentSchema = z.object({
-  serviceId: z.string(),
+  serviceName: z.string(),
+  servicePrice: z.number(),
+  serviceDuration: z.number(),
   barberId: z.string(),
   date: z.string(), // ISO date string
   time: z.string(), // Time in format "1:00 PM"
@@ -33,7 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const { serviceId, barberId, date, time, name, email, phone, notes } = validatedData.data;
+    const { serviceName, servicePrice, serviceDuration, barberId, date, time, name, email, phone, notes } = validatedData.data;
     
     // Parse the date and time
     const dateParts = new Date(date);
@@ -60,20 +63,20 @@ export async function POST(request: NextRequest) {
     const startTime = new Date(dateParts);
     startTime.setHours(hours, minutes, 0, 0);
     
-    // Get the service to determine duration
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId },
+    // Calculate end time based on service duration (from hardcoded services)
+    const endTime = new Date(startTime.getTime() + serviceDuration * 60000);
+    
+    // Verify barber exists and is active
+    const barber = await prisma.user.findUnique({
+      where: { id: barberId },
     });
     
-    if (!service) {
+    if (!barber || barber.role !== 'BARBER' || !barber.isActive) {
       return NextResponse.json(
-        { success: false, message: "Service not found" },
+        { success: false, message: "Barber not found or inactive" },
         { status: 404 }
       );
     }
-    
-    // Calculate end time based on service duration
-    const endTime = new Date(startTime.getTime() + service.duration * 60000);
     
     // Check for scheduling conflicts
     const conflictingAppointments = await prisma.appointment.findMany({
@@ -113,10 +116,10 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Check for time blockouts
+    // Check for time blockouts - Changed barberId to userId
     const conflictingBlockouts = await prisma.timeBlockout.findMany({
       where: {
-        barberId,
+        userId: barberId,
         OR: [
           // Blockout starts during appointment
           {
@@ -153,7 +156,7 @@ export async function POST(request: NextRequest) {
     // Generate a unique reference number
     const referenceNumber = generateReferenceNumber();
     
-    // Create the appointment
+    // Create the appointment with service details stored directly
     const appointment = await prisma.appointment.create({
       data: {
         referenceNumber,
@@ -164,12 +167,14 @@ export async function POST(request: NextRequest) {
         customerPhone: phone,
         notes,
         barberId,
-        serviceId,
+        serviceName,
+        servicePrice,
+        serviceDuration,
         status: "CONFIRMED", // Auto-confirm for now
       },
     });
     
-    // In a real application, you would send a confirmation email here
+    // TODO: Send confirmation email here
     
     return NextResponse.json(
       { 
@@ -225,7 +230,7 @@ export async function GET(request: NextRequest) {
       filters.where.barberId = barberId;
     }
     
-    // Fetch appointments with related data
+    // Fetch appointments with related barber data
     const appointments = await prisma.appointment.findMany({
       ...filters,
       include: {
@@ -233,14 +238,9 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
-          },
-        },
-        service: {
-          select: {
-            id: true,
-            name: true,
-            duration: true,
-            price: true,
+            email: true,
+            bio: true,
+            imageUrl: true,
           },
         },
       },

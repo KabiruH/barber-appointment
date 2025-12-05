@@ -1,4 +1,6 @@
-import { Service } from "@/types/booking";
+// components/booking/booking-summary.tsx
+import { Service } from "@/lib/services"; // Changed import
+import { Card } from "@/components/ui/card";
 
 interface BookingSummaryProps {
   service: Service;
@@ -6,11 +8,23 @@ interface BookingSummaryProps {
 
 export function BookingSummary({ service }: BookingSummaryProps) {
   return (
-    <div className="p-4 bg-amber-50 border border-amber-100 rounded-lg">
-      <h3 className="font-medium text-amber-800 mb-2">Booking Summary</h3>
-      <p className="text-amber-700">Service: {service.name}</p>
-      <p className="text-amber-700">Duration: {service.duration} minutes</p>
-      <p className="text-amber-700">Price: Kes{service.price}</p>
-    </div>
+    <Card className="p-6 bg-amber-50 border-amber-200">
+      <h3 className="font-bold text-lg mb-4">Booking Summary</h3>
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <span className="text-gray-700">{service.name}</span>
+          <span className="font-semibold text-amber-600">Kes {service.price}</span>
+        </div>
+        <div className="flex justify-between items-center text-sm text-gray-600">
+          <span>Duration:</span>
+          <span>{service.duration} minutes</span>
+        </div>
+        {service.description && (
+          <p className="text-sm text-gray-600 pt-2 border-t">
+            {service.description}
+          </p>
+        )}
+      </div>
+    </Card>
   );
 }

@@ -1,16 +1,15 @@
+// app/api/available-slots/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { format, addMinutes, areIntervalsOverlapping } from "date-fns";
 
 export async function GET(request: NextRequest) {
   try {
-    // Get query parameters
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
     const barberId = searchParams.get('barberId');
-    const serviceId = searchParams.get('serviceId');
+    const duration = searchParams.get('duration'); // Changed from serviceId to duration
     
-    // Validate required parameters
     if (!date || !barberId) {
       return NextResponse.json(
         { success: false, message: "Missing required parameters: date and barberId" },
@@ -18,21 +17,19 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Parse date
     const selectedDate = new Date(date);
-    const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const dayOfWeek = selectedDate.getDay();
     
-    // Get barber's availability for the day
+    // Changed: barberId_dayOfWeek to userId_dayOfWeek
     const availability = await prisma.availability.findUnique({
       where: {
-        barberId_dayOfWeek: {
-          barberId,
+        userId_dayOfWeek: {
+          userId: barberId,
           dayOfWeek,
         },
       },
     });
     
-    // If barber doesn't work on this day, return empty array
     if (!availability || !availability.isWorking) {
       return NextResponse.json(
         { 
@@ -47,41 +44,33 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Parse availability times
     const [startHour, startMinute] = availability.startTime.split(':').map(Number);
     const [endHour, endMinute] = availability.endTime.split(':').map(Number);
     
-    // Set start and end times for the day
     const dayStart = new Date(selectedDate);
     dayStart.setHours(startHour, startMinute, 0, 0);
     
     const dayEnd = new Date(selectedDate);
     dayEnd.setHours(endHour, endMinute, 0, 0);
     
-    // Get shop settings
     const settings = await prisma.settings.findFirst();
-    const timeSlotInterval = settings?.timeSlotInterval || 30; // Default to 30 min slots
+    const timeSlotInterval = settings?.timeSlotInterval || 30;
     
-    // Get service duration if service ID is provided
-    let serviceDuration = timeSlotInterval;
-    if (serviceId) {
-      const service = await prisma.service.findUnique({
-        where: { id: serviceId },
-      });
-      
-      if (service) {
-        serviceDuration = service.duration;
-      }
-    }
+    // Use duration from query params (passed from hardcoded services)
+    const serviceDuration = duration ? parseInt(duration) : timeSlotInterval;
     
-    // Get existing appointments for the barber on the selected date
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    
     const existingAppointments = await prisma.appointment.findMany({
       where: {
         barberId,
         status: { notIn: ["CANCELLED", "NO_SHOW"] },
         startTime: {
-          gte: new Date(selectedDate.setHours(0, 0, 0, 0)),
-          lt: new Date(selectedDate.setHours(23, 59, 59, 999)),
+          gte: startOfDay,
+          lt: endOfDay,
         },
       },
       select: {
@@ -90,30 +79,27 @@ export async function GET(request: NextRequest) {
       },
     });
     
-    // Get time blockouts for the barber on the selected date
+    // Changed: barberId to userId
     const timeBlockouts = await prisma.timeBlockout.findMany({
       where: {
-        barberId,
+        userId: barberId,
         OR: [
           {
-            // Blockout starts on the selected date
             startTime: {
-              gte: new Date(selectedDate.setHours(0, 0, 0, 0)),
-              lt: new Date(selectedDate.setHours(23, 59, 59, 999)),
+              gte: startOfDay,
+              lt: endOfDay,
             },
           },
           {
-            // Blockout ends on the selected date
             endTime: {
-              gte: new Date(selectedDate.setHours(0, 0, 0, 0)),
-              lt: new Date(selectedDate.setHours(23, 59, 59, 999)),
+              gte: startOfDay,
+              lt: endOfDay,
             },
           },
           {
-            // Blockout spans across the selected date
             AND: [
-              { startTime: { lt: new Date(selectedDate.setHours(0, 0, 0, 0)) } },
-              { endTime: { gt: new Date(selectedDate.setHours(23, 59, 59, 999)) } },
+              { startTime: { lt: startOfDay } },
+              { endTime: { gt: endOfDay } },
             ],
           },
         ],
@@ -124,14 +110,12 @@ export async function GET(request: NextRequest) {
       },
     });
     
-    // Generate all possible time slots
     const allTimeSlots = [];
     let currentSlot = new Date(dayStart);
     
     while (currentSlot <= new Date(dayEnd.getTime() - serviceDuration * 60000)) {
       const slotEnd = new Date(currentSlot.getTime() + serviceDuration * 60000);
       
-      // Check if the slot is available (not overlapping with any appointment or blockout)
       const isOverlapping = [...existingAppointments, ...timeBlockouts].some(
         (booking) => areIntervalsOverlapping(
           { start: currentSlot, end: slotEnd },
@@ -147,7 +131,6 @@ export async function GET(request: NextRequest) {
         });
       }
       
-      // Move to the next slot
       currentSlot = addMinutes(currentSlot, timeSlotInterval);
     }
     
