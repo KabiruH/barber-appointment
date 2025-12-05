@@ -103,7 +103,7 @@ export default function Header() {
             
             {isLoggedIn ? (
               <>
-                <NavLink href="/dashboard">Dashboard</NavLink>
+                <NavLink href="/appointments">Dashboard</NavLink>
                 {user?.role === 'admin' && (
                   <NavLink href="/admin">Admin Panel</NavLink>
                 )}

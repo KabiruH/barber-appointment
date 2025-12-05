@@ -207,6 +207,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
     const barberId = searchParams.get('barberId');
+    const email = searchParams.get('email'); // Add email filter
+
     
     // Build query filters
     const filters: any = {
@@ -229,6 +231,11 @@ export async function GET(request: NextRequest) {
     if (barberId) {
       filters.where.barberId = barberId;
     }
+
+     // Filter by email if provided
+    if (email) {
+      filters.where.customerEmail = email;
+    }
     
     // Fetch appointments with related barber data
     const appointments = await prisma.appointment.findMany({
@@ -245,7 +252,7 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: {
-        startTime: 'asc',
+        startTime: 'desc',
       },
     });
     
