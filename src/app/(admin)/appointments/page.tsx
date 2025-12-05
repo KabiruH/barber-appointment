@@ -230,7 +230,7 @@ export default function AdminDashboard() {
         {currentUser?.role === 'ADMIN' && (
           <div className="flex gap-2">
             <Button asChild variant="outline">
-              <Link href="/admin/users">Manage Users</Link>
+              <Link href="/users">Manage Users</Link>
             </Button>
             <Button asChild variant="outline">
               <Link href="/block-time">Block Time Slot</Link>
