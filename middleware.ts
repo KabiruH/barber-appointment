@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname; // Fixed: use request.nextUrl.pathname
 
   // Protected routes
-  const protectedRoutes = ['/dashboard', '/admin', '/appointments'];
+  const protectedRoutes = ['/admin', '/appointments'];
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
   if (isProtectedRoute) {
@@ -40,5 +40,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
+runtime: "nodejs",
   matcher: ['/dashboard/:path*', '/admin/:path*', '/appointments/:path*', '/login'],
 };

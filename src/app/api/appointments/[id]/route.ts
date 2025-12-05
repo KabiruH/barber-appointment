@@ -203,12 +203,12 @@ export async function PATCH(
         where: { id: barberId },
       });
       
-      if (!barber || barber.role !== 'BARBER' || !barber.isActive) {
-        return NextResponse.json(
-          { success: false, message: "Barber not found or inactive" },
-          { status: 404 }
-        );
-      }
+     if (!barber || !barber.isActive || (barber.role !== 'BARBER' && barber.role !== 'ADMIN')) {
+  return NextResponse.json(
+    { success: false, message: "Selected user cannot take appointments" },
+    { status: 404 }
+  );
+}
       
       updateData.barberId = barberId;
     }

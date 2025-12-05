@@ -146,20 +146,7 @@ export default function RescheduleLookup() {
                 <span>{selectedAppointment.barber.name}</span>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-4"
-              onClick={() => {
-                setShowForm(false);
-                setSelectedAppointment(null);
-                setReferenceNumber('');
-                setEmail('');
-                setAppointments([]);
-              }}
-            >
-              Choose Different Appointment
-            </Button>
+           
           </CardContent>
         </Card>
 
