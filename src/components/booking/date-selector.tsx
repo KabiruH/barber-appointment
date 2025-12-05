@@ -18,13 +18,16 @@ import { Button } from "@/components/ui/button";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BookingFormValues } from "./booking-schema";
+import { useState } from "react";
 
 interface DateSelectorProps {
   form: UseFormReturn<BookingFormValues>;
-  disabled?: boolean; // Added this prop
+  disabled?: boolean;
 }
 
 export function DateSelector({ form, disabled }: DateSelectorProps) {
+  const [open, setOpen] = useState(false);
+
   return (
     <FormField
       control={form.control}
@@ -32,43 +35,46 @@ export function DateSelector({ form, disabled }: DateSelectorProps) {
       render={({ field }) => (
         <FormItem className="flex flex-col">
           <FormLabel>Date</FormLabel>
-          <Popover>
+
+          <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
               <FormControl>
                 <Button
                   variant="outline"
-                  disabled={disabled} // Added disabled prop
+                  disabled={disabled}
                   className={cn(
-                    "pl-3 text-left font-normal",
-                    !field.value && "text-muted-foreground",
-                    disabled && "cursor-not-allowed opacity-50"
+                    "pl-3 text-left font-normal w-full",
+                    !field.value && "text-muted-foreground"
                   )}
                 >
                   {field.value ? (
-                    format(field.value, "EEEE, MMMM d, yyyy")
+                    format(field.value, "PPP")
                   ) : (
                     <span>{disabled ? "Select a barber first" : "Pick a date"}</span>
                   )}
-                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  <CalendarIcon className="ml-auto h-4 w-4 opacity-60" />
                 </Button>
               </FormControl>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+
+            {/* Bigger popover + closable on date pick */}
+            <PopoverContent className="p-0 w-[300px]">
               <Calendar
                 mode="single"
                 selected={field.value}
-                onSelect={field.onChange}
-                disabled={(date) => {
-                  // Disable dates in the past and Sundays
-                  return (
-                    date < new Date(new Date().setHours(0, 0, 0, 0)) ||
-                    date.getDay() === 0
-                  );
+                onSelect={(date) => {
+                  field.onChange(date);
+                  setOpen(false); // <-- closes popover instantly
                 }}
+                disabled={(date) =>
+                  date < new Date(new Date().setHours(0, 0, 0, 0)) ||
+                  date.getDay() === 0
+                }
                 initialFocus
               />
             </PopoverContent>
           </Popover>
+
           <FormMessage />
         </FormItem>
       )}
