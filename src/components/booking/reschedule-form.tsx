@@ -25,7 +25,6 @@ import {
   Clock, 
   User 
 } from "lucide-react";
-
 import { ServiceSelector } from "./service-selector";
 import { BarberSelector } from "./barber-selector";
 import { DateSelector } from "./date-selector";
@@ -62,7 +61,11 @@ type AppointmentDetails = {
   status: string;
 };
 
-export default function RescheduleForm() {
+interface RescheduleFormProps {
+  initialReference?: string;
+}
+
+export default function RescheduleForm({ initialReference }: RescheduleFormProps) {
   // State for search form
   const [isSearching, setIsSearching] = useState(false);
   const [appointmentFound, setAppointmentFound] = useState(false);
@@ -98,6 +101,14 @@ export default function RescheduleForm() {
   const selectedServiceId = bookingForm.watch("serviceId");
   const selectedBarberId = bookingForm.watch("barberId");
   const selectedDate = bookingForm.watch("date");
+  
+  // ADD THIS: Auto-lookup when initialReference is provided
+  useEffect(() => {
+    if (initialReference && !appointmentFound) {
+      onLookupSubmit({ referenceNumber: initialReference });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialReference]);
   
   // Fetch barbers on component mount (all barbers can do all services)
   useEffect(() => {

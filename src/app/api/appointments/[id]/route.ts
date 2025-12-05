@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
-import { getServiceById } from "@/lib/services";
 
 // Validation schema for appointment updates
 const updateAppointmentSchema = z.object({

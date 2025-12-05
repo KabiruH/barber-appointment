@@ -66,15 +66,23 @@ export async function POST(request: NextRequest) {
     // Calculate end time based on service duration (from hardcoded services)
     const endTime = new Date(startTime.getTime() + serviceDuration * 60000);
     
-    // Verify barber exists and is active
+    // Verify barber exists and is active - FIXED: Allow both BARBER and ADMIN roles
     const barber = await prisma.user.findUnique({
       where: { id: barberId },
     });
     
-    if (!barber || barber.role !== 'BARBER' || !barber.isActive) {
+    if (!barber || !barber.isActive) {
       return NextResponse.json(
         { success: false, message: "Barber not found or inactive" },
         { status: 404 }
+      );
+    }
+
+    // Allow both BARBER and ADMIN roles to take appointments
+    if (barber.role !== 'BARBER' && barber.role !== 'ADMIN') {
+      return NextResponse.json(
+        { success: false, message: "Selected user cannot take appointments" },
+        { status: 400 }
       );
     }
     
@@ -111,7 +119,7 @@ export async function POST(request: NextRequest) {
     
     if (conflictingAppointments.length > 0) {
       return NextResponse.json(
-        { success: false, message: "This time slot is already booked" },
+        { success: false, message: "This time slot is already booked. Please select a different time." },
         { status: 409 }
       );
     }
@@ -148,7 +156,7 @@ export async function POST(request: NextRequest) {
     
     if (conflictingBlockouts.length > 0) {
       return NextResponse.json(
-        { success: false, message: "The barber is not available during this time" },
+        { success: false, message: "The barber is not available during this time. Please select a different time." },
         { status: 409 }
       );
     }
@@ -168,7 +176,7 @@ export async function POST(request: NextRequest) {
         notes,
         barberId,
         serviceName,
-        servicePrice,
+        servicePrice: servicePrice.toString(),
         serviceDuration,
         status: "CONFIRMED", // Auto-confirm for now
       },

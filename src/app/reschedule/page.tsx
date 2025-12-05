@@ -1,10 +1,11 @@
+// app/reschedule/page.tsx
 import { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import RescheduleForm from "@/components/booking/reschedule-form";
+import RescheduleLookup from "@/components/booking/reschedule-lookup";
 
 export const metadata: Metadata = {
-  title: "Reschedule Appointment | Premium Barber Shop",
+  title: "Reschedule Appointment | Havan Premium Barber Shop",
   description: "Reschedule your existing barber shop appointment",
 };
 
@@ -19,11 +20,11 @@ export default function ReschedulePage() {
       <div className="mb-8 space-y-2">
         <h1 className="text-3xl font-bold">Reschedule Appointment</h1>
         <p className="text-muted-foreground">
-          Enter your appointment reference number to reschedule your existing appointment.
+          Find your appointment using your reference number or email address.
         </p>
       </div>
       
-      <RescheduleForm />
+      <RescheduleLookup />
     </div>
   );
 }

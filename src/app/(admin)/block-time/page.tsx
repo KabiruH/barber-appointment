@@ -97,10 +97,7 @@ export default function BlockTimePage() {
   
   function onSubmit(data: BlockTimeFormValues) {
     setIsSubmitting(true);
-    
-    // Here you would typically make an API call to save the blocked time
-    console.log("Form submitted:", data);
-    
+  
     // Simulate API call
     setTimeout(() => {
       setIsSubmitting(false);

@@ -94,7 +94,6 @@ export default function BlockedTimeList({ selectedDate }: BlockedTimeListProps) 
 
   const handleConfirmDelete = () => {
     // In a real app, you would call your API to delete the time block
-    console.log(`Deleting block with ID: ${selectedBlock}`);
     setIsDeleteDialogOpen(false);
     setSelectedBlock(null);
     // Then you would refresh the list

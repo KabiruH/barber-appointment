@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import BookingForm from "@/components/booking/booking-form";
 
 export const metadata: Metadata = {
-  title: "Book an Appointment | Premium Barber Shop",
+  title: "Book an Appointment | Havan Premium Barber Shop",
   description: "Book your next barber shop appointment with our skilled professionals",
 };
 

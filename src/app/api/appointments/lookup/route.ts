@@ -40,22 +40,6 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Check if the appointment is in the past
-    if (new Date(appointment.startTime) < new Date()) {
-      return NextResponse.json(
-        { success: false, message: "Cannot reschedule past appointments" },
-        { status: 400 }
-      );
-    }
-    
-    // Check if the appointment is already cancelled
-    if (appointment.status === "CANCELLED") {
-      return NextResponse.json(
-        { success: false, message: "This appointment has been cancelled" },
-        { status: 400 }
-      );
-    }
-    
     // Format the data for the client
     const appointmentData = {
       id: appointment.id,
@@ -68,6 +52,7 @@ export async function GET(request: NextRequest) {
       notes: appointment.notes,
       barberId: appointment.barberId,
       barberName: appointment.barber.name,
+      barber: appointment.barber, // Include full barber object
       serviceName: appointment.serviceName,
       servicePrice: appointment.servicePrice.toString(), // Convert Decimal to string
       serviceDuration: appointment.serviceDuration,

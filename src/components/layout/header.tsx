@@ -93,7 +93,7 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="text-xl font-bold text-gray-900 hover:text-amber-600 transition-colors">
-            Premium Barber
+            Havan Premium Barber Shop
           </Link>
 
           {/* Desktop Navigation */}

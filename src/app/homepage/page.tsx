@@ -23,7 +23,7 @@ export default function HomePage() {
 
         <div className="container mx-auto px-4 text-center relative z-10">
           <h1 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-lg">
-            Premium Barber Shop
+            Havan Premium Barber Shop
           </h1>
           <p className="text-xl md:text-2xl mb-10 max-w-2xl mx-auto drop-shadow">
             Professional cuts and classic grooming for the modern gentleman
