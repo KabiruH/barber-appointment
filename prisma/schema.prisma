@@ -54,6 +54,16 @@ model Appointment {
   servicePrice      Decimal           @db.Decimal(10, 2)
   serviceDuration   Int               // Duration in minutes
   
+  // Payment fields (NEW)
+  paymentStatus     PaymentStatus     @default(PENDING)
+  paymentMethod     String?           // "mpesa", "cash", etc.
+  mpesaName         String?           // Name used in M-Pesa payment
+  mpesaPhone        String?           // Phone number used for payment
+  mpesaCode         String?           // M-Pesa transaction code
+  paidAt            DateTime?
+  confirmedBy       String?           // Admin/receptionist who confirmed payment
+  confirmedAt       DateTime?
+  
   emailReminderSent Boolean           @default(false)
   
   createdAt         DateTime          @default(now())
@@ -63,14 +73,22 @@ model Appointment {
   @@index([startTime])
   @@index([status])
   @@index([referenceNumber])
+  @@index([paymentStatus])
 }
 
 enum AppointmentStatus {
-  PENDING
-  CONFIRMED
+  PENDING           // Waiting for payment
+  CONFIRMED         // Payment confirmed by admin
   CANCELLED
   COMPLETED
   NO_SHOW
+}
+
+enum PaymentStatus {
+  PENDING           // Awaiting payment
+  PAID              // Payment confirmed
+  FAILED            // Payment failed/cancelled
+  REFUNDED          // Payment refunded
 }
 
 model Availability {
@@ -110,7 +128,7 @@ enum RecurringType {
 
 model Settings {
   id                       String   @id @default(cuid())
-  shopName                 String   @default("Premium Barber Shop")
+  shopName                 String   @default("Havan Cutz")
   shopAddress              String?
   shopPhone                String?
   shopEmail                String?
@@ -122,5 +140,11 @@ model Settings {
   reminderHours            Int      @default(24)
   emailConfirmationEnabled Boolean  @default(true)
   emailReminderEnabled     Boolean  @default(true)
+  
+  // Payment settings (NEW)
+  mpesaPaybillNumber       String?  @default("400200")
+  mpesaTillNumber          String?
+  fixedServicePrice        Decimal  @default(1500) @db.Decimal(10, 2)
+  
   updatedAt                DateTime @updatedAt
 }

@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { generateReferenceNumber } from "@/lib/utils";
+import { sendCustomerBookingEmail, sendAdminNotificationEmail, sendPaymentConfirmationEmail } from "@/lib/email";
 
-// Updated validation schema - removed serviceId, added service details
+// Updated validation schema with fixed price
 const appointmentSchema = z.object({
   serviceName: z.string(),
   servicePrice: z.number(),
@@ -63,10 +64,10 @@ export async function POST(request: NextRequest) {
     const startTime = new Date(dateParts);
     startTime.setHours(hours, minutes, 0, 0);
     
-    // Calculate end time based on service duration (from hardcoded services)
+    // Calculate end time based on service duration
     const endTime = new Date(startTime.getTime() + serviceDuration * 60000);
     
-    // Verify barber exists and is active - FIXED: Allow both BARBER and ADMIN roles
+    // Verify barber exists and is active
     const barber = await prisma.user.findUnique({
       where: { id: barberId },
     });
@@ -124,26 +125,23 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Check for time blockouts - Changed barberId to userId
+    // Check for time blockouts
     const conflictingBlockouts = await prisma.timeBlockout.findMany({
       where: {
         userId: barberId,
         OR: [
-          // Blockout starts during appointment
           {
             AND: [
               { startTime: { gte: startTime } },
               { startTime: { lt: endTime } },
             ],
           },
-          // Blockout ends during appointment
           {
             AND: [
               { endTime: { gt: startTime } },
               { endTime: { lte: endTime } },
             ],
           },
-          // Blockout covers entire appointment
           {
             AND: [
               { startTime: { lte: startTime } },
@@ -164,7 +162,7 @@ export async function POST(request: NextRequest) {
     // Generate a unique reference number
     const referenceNumber = generateReferenceNumber();
     
-    // Create the appointment with service details stored directly
+    // Create the appointment with PENDING status (waiting for payment)
     const appointment = await prisma.appointment.create({
       data: {
         referenceNumber,
@@ -176,24 +174,58 @@ export async function POST(request: NextRequest) {
         notes,
         barberId,
         serviceName,
-        servicePrice: servicePrice.toString(),
+        servicePrice: servicePrice.toString(), // Dynamic price as string for Decimal
         serviceDuration,
-        status: "CONFIRMED", // Auto-confirm for now
+        status: "PENDING", // Changed from CONFIRMED to PENDING
+        paymentStatus: "PENDING", // Payment pending
       },
+      include: {
+        barber: {
+          select: {
+            name: true,
+            email: true,
+          }
+        }
+      }
     });
     
-    // TODO: Send confirmation email here
+    // Send emails asynchronously (don't block the response)
+    const emailData = {
+      customerName: name,
+      customerEmail: email,
+      serviceName,
+      servicePrice,
+      barberName: barber.name,
+      date: startTime,
+      time,
+      referenceNumber: appointment.referenceNumber,
+      duration: serviceDuration,
+      notes: notes || undefined,
+      phone: phone || undefined,
+    };
+
+    // Send customer booking confirmation email
+    sendCustomerBookingEmail(emailData).catch((error) => {
+      console.error("Failed to send customer email:", error);
+    });
+    
+    // Send admin notification email
+    sendAdminNotificationEmail(emailData).catch((error) => {
+      console.error("Failed to send admin email:", error);
+    });
     
     return NextResponse.json(
       { 
         success: true, 
-        message: "Appointment created successfully", 
+        message: "Appointment created successfully. Please check your email for payment instructions.", 
         data: {
           id: appointment.id,
           referenceNumber: appointment.referenceNumber,
           startTime: appointment.startTime,
           endTime: appointment.endTime,
           status: appointment.status,
+          paymentStatus: appointment.paymentStatus,
+          amount: servicePrice,
         }
       },
       { status: 201 }
@@ -208,15 +240,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET endpoint to fetch appointments - no authentication required
+// GET endpoint to fetch appointments
 export async function GET(request: NextRequest) {
   try {
-    // Get query parameters
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
     const barberId = searchParams.get('barberId');
-    const email = searchParams.get('email'); // Add email filter
-
+    const email = searchParams.get('email');
+    const paymentStatus = searchParams.get('paymentStatus'); // NEW: Filter by payment status
     
     // Build query filters
     const filters: any = {
@@ -240,9 +271,14 @@ export async function GET(request: NextRequest) {
       filters.where.barberId = barberId;
     }
 
-     // Filter by email if provided
+    // Filter by email if provided
     if (email) {
       filters.where.customerEmail = email;
+    }
+
+    // Filter by payment status if provided
+    if (paymentStatus) {
+      filters.where.paymentStatus = paymentStatus;
     }
     
     // Fetch appointments with related barber data
@@ -273,6 +309,105 @@ export async function GET(request: NextRequest) {
     console.error("Fetch appointments error:", error);
     return NextResponse.json(
       { success: false, message: "An error occurred while fetching appointments" },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH endpoint to confirm payment (for admin use)
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { referenceNumber, mpesaCode, mpesaPhone, confirmedBy } = body;
+
+    if (!referenceNumber || !mpesaCode) {
+      return NextResponse.json(
+        { success: false, message: "Reference number and M-Pesa code are required" },
+        { status: 400 }
+      );
+    }
+
+    // Find the appointment
+    const appointment = await prisma.appointment.findUnique({
+      where: { referenceNumber },
+    });
+
+    if (!appointment) {
+      return NextResponse.json(
+        { success: false, message: "Appointment not found" },
+        { status: 404 }
+      );
+    }
+
+    if (appointment.paymentStatus === "PAID") {
+      return NextResponse.json(
+        { success: false, message: "Payment already confirmed" },
+        { status: 400 }
+      );
+    }
+
+    // Update appointment with payment confirmation
+    const updatedAppointment = await prisma.appointment.update({
+      where: { referenceNumber },
+      data: {
+        paymentStatus: "PAID",
+        status: "CONFIRMED",
+        mpesaCode,
+        mpesaPhone: mpesaPhone || appointment.customerPhone,
+        mpesaName: appointment.customerName,
+        paymentMethod: "mpesa",
+        paidAt: new Date(),
+        confirmedBy: confirmedBy || "Admin",
+        confirmedAt: new Date(),
+      },
+      include: {
+        barber: {
+          select: {
+            name: true,
+            email: true,
+          }
+        }
+      }
+    });
+
+    // Format time from startTime
+    const formattedTime = new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(updatedAppointment.startTime);
+
+    // Send payment confirmation email to customer
+    const emailData = {
+      customerName: updatedAppointment.customerName,
+      customerEmail: updatedAppointment.customerEmail,
+      serviceName: updatedAppointment.serviceName,
+      servicePrice: parseFloat(updatedAppointment.servicePrice.toString()),
+      barberName: updatedAppointment.barber.name,
+      date: updatedAppointment.startTime,
+      time: formattedTime, // Formatted time from startTime
+      referenceNumber: updatedAppointment.referenceNumber,
+      duration: updatedAppointment.serviceDuration,
+    };
+
+    // Send payment confirmation email asynchronously
+    sendPaymentConfirmationEmail(emailData).catch((error) => {
+      console.error("Failed to send payment confirmation email:", error);
+    });
+
+    return NextResponse.json(
+      { 
+        success: true, 
+        message: "Payment confirmed successfully. Confirmation email sent to customer.",
+        data: updatedAppointment
+      },
+      { status: 200 }
+    );
+
+  } catch (error) {
+    console.error("Confirm payment error:", error);
+    return NextResponse.json(
+      { success: false, message: "An error occurred while confirming payment" },
       { status: 500 }
     );
   }

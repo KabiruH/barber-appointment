@@ -261,7 +261,7 @@ export default function LookupPage() {
                             <Link href="/reschedule">Reschedule</Link>
                           </Button>
                           <Button asChild variant="outline" className="flex-1">
-                            <Link href={`mailto:info@premiumbarber.com?subject=Cancel Appointment ${appointment.referenceNumber}`}>
+                            <Link href={`mailto:info@havancutz.co.ke?subject=Cancel Appointment ${appointment.referenceNumber}`}>
                               Cancel
                             </Link>
                           </Button>
@@ -396,10 +396,10 @@ export default function LookupPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
             <Button asChild variant="outline" size="sm">
-              <a href="tel:+254700000000">Call Us</a>
+              <a href="tel:+254716107113">Call Us</a>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <a href="mailto:info@premiumbarber.com">Email Us</a>
+              <a href="mailto:info@havancutz.co.ke">Email Us</a>
             </Button>
           </div>
         </CardContent>

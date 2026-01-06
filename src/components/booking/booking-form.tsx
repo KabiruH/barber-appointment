@@ -16,8 +16,8 @@ import { DateSelector } from "./date-selector";
 import { TimeSelector } from "./time-selector";
 import { CustomerDetailsFields } from "./customer-details-fields";
 import { BookingSummary } from "./booking-summary";
-import { BookingConfirmation } from "./booking-confirmation";
-import { SERVICES, getServiceById, Service } from "@/lib/services";
+import { PaymentInstructions } from "./payment-instructions";
+import { SERVICES, getServiceById, Service, getBookingAmount } from "@/lib/services";
 import { Barber, TimeSlot } from "@/types/booking";
 
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
@@ -35,6 +35,7 @@ export default function BookingForm() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingComplete, setBookingComplete] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
   const [referenceNumber, setReferenceNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
   
@@ -138,6 +139,8 @@ export default function BookingForm() {
       return;
     }
     
+  const bookingAmount = getBookingAmount(service);
+
     try {
       // Make API call to create appointment
       const response = await fetch('/api/appointments', {
@@ -147,7 +150,7 @@ export default function BookingForm() {
         },
         body: JSON.stringify({
           serviceName: service.name,
-          servicePrice: service.price,
+          servicePrice: bookingAmount, // Fixed price
           serviceDuration: service.duration,
           barberId: data.barberId,
           date: data.date.toISOString(),
@@ -162,8 +165,9 @@ export default function BookingForm() {
       const result = await response.json();
       
       if (response.ok && result.success) {
-        // Appointment created successfully
+        // Appointment created successfully - show payment instructions
         setBookingComplete(true);
+        setShowPayment(true);
         setReferenceNumber(result.data.referenceNumber);
       } else {
         // Handle error from API
@@ -177,15 +181,20 @@ export default function BookingForm() {
     }
   }
 
-  if (bookingComplete) {
-    return (
-      <BookingConfirmation
+  // Show payment instructions after booking
+  if (bookingComplete && showPayment) {
+      const bookingAmount = selectedService ? getBookingAmount(selectedService) : 0;
+    
+      return (
+      <PaymentInstructions
         referenceNumber={referenceNumber}
-        selectedService={selectedService}
-        selectedBarber={barbers.find(b => b.id === form.getValues().barberId)}
-        formValues={form.getValues()}
-        onBookAnother={() => {
+        amount={bookingAmount}
+        customerName={form.getValues().name}
+        serviceName={selectedService?.name || ''}
+        isHaircut={selectedService?.isHaircut || false}
+        onBackToHome={() => {
           setBookingComplete(false);
+          setShowPayment(false);
           form.reset();
           setSelectedService(null);
           setError(null);

@@ -23,7 +23,7 @@ export default function HomePage() {
 
         <div className="container mx-auto px-4 text-center relative z-10">
           <h1 className="text-5xl md:text-6xl font-bold mb-4 drop-shadow-lg">
-            Havan Premium Barber Shop
+            Havan Cutz
           </h1>
           <p className="text-xl md:text-2xl mb-10 max-w-2xl mx-auto drop-shadow">
             Professional cuts and classic grooming for the modern gentleman
@@ -66,7 +66,7 @@ export default function HomePage() {
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-3">Our Services</h2>
+            <h2 className="text-4xl font-bold mb-3">Our Popular Services</h2>
             <p className="text-gray-600 text-lg">
               Quality grooming services tailored to your needs
             </p>
@@ -74,43 +74,43 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <ServiceCard 
-              title="Classic Haircut"
-              price="Kes500"
-              description="Precision cut with attention to detail, includes hot towel and styling"
+              title="Haircut"
+              price="Kes 1,000"
+              description="Precision cut with attention to detail, includes styling"
+              duration="45 min"
+            />
+            
+            <ServiceCard 
+              title="Manicure"
+              price="Kes 1,500"
+              description="Professional hand care and nail grooming"
+              duration="45 min"
+            />
+            
+            <ServiceCard 
+              title="Pedicure"
+              price="Kes 2,000"
+              description="Complete foot care and nail grooming"
               duration="60 min"
             />
             
             <ServiceCard 
-              title="Beard Trim"
-              price="Kes400"
-              description="Shape and style your beard with precision tools and techniques"
+              title="Facial (Basic)"
+              price="Kes 3,500"
+              description="Deep cleansing and rejuvenating facial treatment"
               duration="60 min"
             />
             
             <ServiceCard 
-              title="Hot Towel Shave"
-              price="Kes500"
-              description="Traditional straight razor shave with hot towel treatment"
-              duration="60 min"
-            />
-            
-            <ServiceCard 
-              title="Haircut & Beard Trim"
-              price="Kes500"
-              description="Complete package for hair and beard styling"
-              duration="60 min"
-            />
-            
-            <ServiceCard 
-              title="Hair Styling"
-              price="Kes500"
-              description="Professional styling with premium products"
-              duration="60 min"
+              title="Acrylics"
+              price="Kes 5,000"
+              description="Full acrylic nail set"
+              duration="120 min"
             />
             
             <ServiceCard 
               title="Kids Haircut"
-              price="Kes300"
+              price="Kes 1,000"
               description="Gentle haircuts for young gentlemen under 12"
               duration="30 min"
             />
@@ -118,7 +118,7 @@ export default function HomePage() {
 
           <div className="text-center mt-12">
             <Button asChild size="lg" className="bg-amber-500 hover:bg-amber-600 text-black font-semibold shadow-lg">
-              <Link href="/book">Book Now</Link>
+              <Link href="/book">View All Services & Book Now</Link>
             </Button>
           </div>
         </div>
@@ -148,8 +148,8 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <FeatureCard 
               icon={<Scissors className="h-12 w-12 text-amber-400" />}
-              title="Expert Barbers"
-              description="Our team of skilled barbers bring years of experience and passion to every cut"
+              title="Expert Stylists"
+              description="Our team of skilled professionals bring years of experience and passion to every service"
             />
             
             <FeatureCard 

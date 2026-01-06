@@ -9,7 +9,7 @@ import Footer from "@/components/layout/footer";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Havan Premium Barber Shop",
+  title: "Havan Cutz",
   description: "Book your next barber appointment with our professional stylists",
 };
 

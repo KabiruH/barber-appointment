@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import RescheduleLookup from "@/components/booking/reschedule-lookup";
 
 export const metadata: Metadata = {
-  title: "Reschedule Appointment | Havan Premium Barber Shop",
+  title: "Reschedule Appointment | Havan Cutz",
   description: "Reschedule your existing barber shop appointment",
 };
 
