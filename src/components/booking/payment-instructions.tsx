@@ -23,7 +23,8 @@ export function PaymentInstructions({
   onBackToHome
 }: PaymentInstructionsProps) {
   const [copied, setCopied] = useState(false);
-  const paybillNumber = "400200"; // Your M-Pesa Paybill/Till Number
+  const paybillNumber = "247247"; // Your M-Pesa Paybill Number
+  const accountNumber = "0756867444"; // Fixed account number for all payments
   
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -64,6 +65,31 @@ export function PaymentInstructions({
                 Full service amount due after haircut
               </p>
             )}
+          </div>
+
+          {/* Reference Number Display */}
+          <div className="text-center p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+            <p className="text-sm text-blue-700 mb-2">Your Booking Reference</p>
+            <div className="flex items-center justify-center gap-2">
+              <code className="bg-white px-4 py-2 rounded font-mono text-lg font-bold text-blue-900 border border-blue-300">
+                {referenceNumber}
+              </code>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => copyToClipboard(referenceNumber)}
+                className="h-9"
+              >
+                {copied ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-blue-600 mt-2">
+              Save this reference number - you'll need it for any inquiries
+            </p>
           </div>
 
           {/* M-Pesa Instructions */}
@@ -114,15 +140,15 @@ export function PaymentInstructions({
               <li className="flex items-start gap-2">
                 <span className="font-medium text-gray-700">5.</span>
                 <div className="flex-1">
-                  <span>Enter Account Number (Your Reference):</span>
+                  <span>Enter Account Number:</span>
                   <div className="flex items-center gap-2 mt-1">
                     <code className="bg-amber-100 px-3 py-1 rounded font-mono text-base font-semibold text-amber-800">
-                      {referenceNumber}
+                      {accountNumber}
                     </code>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => copyToClipboard(referenceNumber)}
+                      onClick={() => copyToClipboard(accountNumber)}
                       className="h-7"
                     >
                       {copied ? (
@@ -152,9 +178,10 @@ export function PaymentInstructions({
               Important!
             </AlertTitle>
             <AlertDescription className="text-red-700 text-sm space-y-1">
-              <p>• Use <strong>{referenceNumber}</strong> as the Account Number</p>
-              <p>• Ensure the name on M-Pesa matches: <strong>{customerName}</strong></p>
-              <p>• Keep your M-Pesa confirmation SMS</p>
+              <p>• Use <strong>{accountNumber}</strong> as the Account Number</p>
+              <p>• Save your M-Pesa confirmation code (e.g., SH12ABC3DE)</p>
+              <p>• Keep your booking reference: <strong>{referenceNumber}</strong></p>
+              <p>• Our team will verify payment using your M-Pesa code</p>
             </AlertDescription>
           </Alert>
 
@@ -169,7 +196,11 @@ export function PaymentInstructions({
             <ul className="space-y-2 ml-8 text-sm text-blue-800">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <span>After payment, our team will verify your transaction</span>
+                <span>You'll receive an M-Pesa confirmation SMS with a code</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>Our team will verify your payment using the M-Pesa code</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -188,7 +219,7 @@ export function PaymentInstructions({
               Need help with payment?
             </p>
             <p className="text-sm font-medium">
-              Call/WhatsApp: <a href="tel:+254700000000" className="text-amber-600 hover:underline">+254 700 000 000</a>
+              Call/WhatsApp: <a href="tel:+254716107113" className="text-amber-600 hover:underline">+254 716 107 113</a>
             </p>
           </div>
         </div>

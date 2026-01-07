@@ -11,7 +11,7 @@ const appointmentSchema = z.object({
   servicePrice: z.number(),
   serviceDuration: z.number(),
   barberId: z.string(),
-  date: z.string(), // ISO date string
+  date: z.string(), // Date string in YYYY-MM-DD format
   time: z.string(), // Time in format "1:00 PM"
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -39,8 +39,7 @@ export async function POST(request: NextRequest) {
     
     const { serviceName, servicePrice, serviceDuration, barberId, date, time, name, email, phone, notes } = validatedData.data;
     
-    // Parse the date and time
-    const dateParts = new Date(date);
+    // Parse the time
     const timeParts = time.match(/(\d+):(\d+) ([AP]M)/);
     
     if (!timeParts) {
@@ -61,8 +60,10 @@ export async function POST(request: NextRequest) {
       hours = 0;
     }
     
-    const startTime = new Date(dateParts);
-    startTime.setHours(hours, minutes, 0, 0);
+    // FIXED: Parse date correctly to avoid timezone issues
+    // Split YYYY-MM-DD and create date in local timezone
+    const [year, month, day] = date.split('-').map(Number);
+    const startTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
     
     // Calculate end time based on service duration
     const endTime = new Date(startTime.getTime() + serviceDuration * 60000);
@@ -247,7 +248,7 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date');
     const barberId = searchParams.get('barberId');
     const email = searchParams.get('email');
-    const paymentStatus = searchParams.get('paymentStatus'); // NEW: Filter by payment status
+    const paymentStatus = searchParams.get('paymentStatus');
     
     // Build query filters
     const filters: any = {
@@ -385,7 +386,7 @@ export async function PATCH(request: NextRequest) {
       servicePrice: parseFloat(updatedAppointment.servicePrice.toString()),
       barberName: updatedAppointment.barber.name,
       date: updatedAppointment.startTime,
-      time: formattedTime, // Formatted time from startTime
+      time: formattedTime,
       referenceNumber: updatedAppointment.referenceNumber,
       duration: updatedAppointment.serviceDuration,
     };

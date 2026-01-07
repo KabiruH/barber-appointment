@@ -19,6 +19,7 @@ import { BookingSummary } from "./booking-summary";
 import { PaymentInstructions } from "./payment-instructions";
 import { SERVICES, getServiceById, Service, getBookingAmount } from "@/lib/services";
 import { Barber, TimeSlot } from "@/types/booking";
+import { format } from "date-fns";
 
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
 
@@ -128,58 +129,60 @@ export default function BookingForm() {
     fetchTimeSlots();
   }, [selectedServiceId, selectedBarberId, selectedDate]);
   
-  async function onSubmit(data: BookingFormValues) {
-    setIsSubmitting(true);
-    setError(null);
-    
-    const service = getServiceById(data.serviceId);
-    if (!service) {
-      setError("Invalid service selected");
-      setIsSubmitting(false);
-      return;
-    }
-    
+// components/booking/booking-form.tsx
+async function onSubmit(data: BookingFormValues) {
+  setIsSubmitting(true);
+  setError(null);
+  
+  const service = getServiceById(data.serviceId);
+  if (!service) {
+    setError("Invalid service selected");
+    setIsSubmitting(false);
+    return;
+  }
+  
   const bookingAmount = getBookingAmount(service);
 
-    try {
-      // Make API call to create appointment
-      const response = await fetch('/api/appointments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          serviceName: service.name,
-          servicePrice: bookingAmount, // Fixed price
-          serviceDuration: service.duration,
-          barberId: data.barberId,
-          date: data.date.toISOString(),
-          time: data.time,
-          name: data.name,
-          email: data.email,
-          phone: data.phone || '',
-          notes: data.notes || '',
-        }),
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok && result.success) {
-        // Appointment created successfully - show payment instructions
-        setBookingComplete(true);
-        setShowPayment(true);
-        setReferenceNumber(result.data.referenceNumber);
-      } else {
-        // Handle error from API
-        setError(result.message || 'Failed to create appointment. Please try again.');
-      }
-    } catch (err) {
-      console.error('Booking error:', err);
-      setError('An error occurred during booking. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+  try {
+    // Format date to YYYY-MM-DD to avoid timezone issues
+    const dateString = format(data.date, 'yyyy-MM-dd');
+    
+    // Make API call to create appointment
+    const response = await fetch('/api/appointments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        serviceName: service.name,
+        servicePrice: bookingAmount,
+        serviceDuration: service.duration,
+        barberId: data.barberId,
+        date: dateString, // Send as YYYY-MM-DD string instead of ISO
+        time: data.time,
+        name: data.name,
+        email: data.email,
+        phone: data.phone || '',
+        notes: data.notes || '',
+      }),
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok && result.success) {
+      setBookingComplete(true);
+      setShowPayment(true);
+      setReferenceNumber(result.data.referenceNumber);
+    } else {
+      setError(result.message || 'Failed to create appointment. Please try again.');
     }
+  } catch (err) {
+    console.error('Booking error:', err);
+    setError('An error occurred during booking. Please try again.');
+  } finally {
+    setIsSubmitting(false);
   }
+}
 
   // Show payment instructions after booking
   if (bookingComplete && showPayment) {
