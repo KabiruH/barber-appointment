@@ -107,8 +107,12 @@ export default function BookingForm() {
       
       try {
         setLoadingTimeSlots(true);
+        
+        // Format date as YYYY-MM-DD to avoid timezone conversion
+        const dateString = format(selectedDate, 'yyyy-MM-dd');
+        
         const response = await fetch(
-          `/api/available-slots?date=${selectedDate.toISOString()}&barberId=${selectedBarberId}&duration=${service.duration}`
+          `/api/available-slots?date=${dateString}&barberId=${selectedBarberId}&duration=${service.duration}`
         );
         const result = await response.json();
         
@@ -129,66 +133,65 @@ export default function BookingForm() {
     fetchTimeSlots();
   }, [selectedServiceId, selectedBarberId, selectedDate]);
   
-// components/booking/booking-form.tsx
-async function onSubmit(data: BookingFormValues) {
-  setIsSubmitting(true);
-  setError(null);
-  
-  const service = getServiceById(data.serviceId);
-  if (!service) {
-    setError("Invalid service selected");
-    setIsSubmitting(false);
-    return;
-  }
-  
-  const bookingAmount = getBookingAmount(service);
-
-  try {
-    // Format date to YYYY-MM-DD to avoid timezone issues
-    const dateString = format(data.date, 'yyyy-MM-dd');
+  async function onSubmit(data: BookingFormValues) {
+    setIsSubmitting(true);
+    setError(null);
     
-    // Make API call to create appointment
-    const response = await fetch('/api/appointments', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        serviceName: service.name,
-        servicePrice: bookingAmount,
-        serviceDuration: service.duration,
-        barberId: data.barberId,
-        date: dateString, // Send as YYYY-MM-DD string instead of ISO
-        time: data.time,
-        name: data.name,
-        email: data.email,
-        phone: data.phone || '',
-        notes: data.notes || '',
-      }),
-    });
-    
-    const result = await response.json();
-    
-    if (response.ok && result.success) {
-      setBookingComplete(true);
-      setShowPayment(true);
-      setReferenceNumber(result.data.referenceNumber);
-    } else {
-      setError(result.message || 'Failed to create appointment. Please try again.');
+    const service = getServiceById(data.serviceId);
+    if (!service) {
+      setError("Invalid service selected");
+      setIsSubmitting(false);
+      return;
     }
-  } catch (err) {
-    console.error('Booking error:', err);
-    setError('An error occurred during booking. Please try again.');
-  } finally {
-    setIsSubmitting(false);
+    
+    const bookingAmount = getBookingAmount(service);
+
+    try {
+      // Format date to YYYY-MM-DD to avoid timezone issues
+      const dateString = format(data.date, 'yyyy-MM-dd');
+      
+      // Make API call to create appointment
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          serviceName: service.name,
+          servicePrice: bookingAmount,
+          serviceDuration: service.duration,
+          barberId: data.barberId,
+          date: dateString, // Send as YYYY-MM-DD string
+          time: data.time,
+          name: data.name,
+          email: data.email,
+          phone: data.phone || '',
+          notes: data.notes || '',
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        setBookingComplete(true);
+        setShowPayment(true);
+        setReferenceNumber(result.data.referenceNumber);
+      } else {
+        setError(result.message || 'Failed to create appointment. Please try again.');
+      }
+    } catch (err) {
+      console.error('Booking error:', err);
+      setError('An error occurred during booking. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   }
-}
 
   // Show payment instructions after booking
   if (bookingComplete && showPayment) {
-      const bookingAmount = selectedService ? getBookingAmount(selectedService) : 0;
+    const bookingAmount = selectedService ? getBookingAmount(selectedService) : 0;
     
-      return (
+    return (
       <PaymentInstructions
         referenceNumber={referenceNumber}
         amount={bookingAmount}
