@@ -4,6 +4,16 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -21,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { format, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
-import { CalendarDays, Clock, User, Loader2, X, Edit, Filter } from "lucide-react";
+import { CalendarDays, Clock, User, Loader2, X, Edit, Filter, CheckCircle, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -31,12 +41,15 @@ interface Appointment {
   startTime: string;
   endTime: string;
   status: string;
+  paymentStatus: string;
   customerName: string;
   customerEmail: string;
   customerPhone?: string;
   serviceName: string;
   servicePrice: string;
   serviceDuration: number;
+  mpesaCode?: string;
+  mpesaPhone?: string;
   barber: {
     id: string;
     name: string;
@@ -59,6 +72,13 @@ export default function AdminDashboard() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState<string | null>(null);
+  
+  // Payment confirmation modal state
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [mpesaCode, setMpesaCode] = useState("");
+  const [mpesaPhone, setMpesaPhone] = useState("");
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
   
   // Fetch current user
   useEffect(() => {
@@ -157,6 +177,73 @@ export default function AdminDashboard() {
   const confirmedCount = appointments.filter(apt => apt.status === 'CONFIRMED').length;
   const pendingCount = appointments.filter(apt => apt.status === 'PENDING').length;
 
+  // Open payment confirmation modal
+  const openPaymentModal = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setMpesaCode(appointment.mpesaCode || "");
+    setMpesaPhone(appointment.mpesaPhone || appointment.customerPhone || "");
+    setPaymentModalOpen(true);
+  };
+
+  // Confirm payment
+  const handleConfirmPayment = async () => {
+    if (!selectedAppointment) return;
+    
+    if (!mpesaCode.trim()) {
+      toast.error("Please enter M-Pesa transaction code");
+      return;
+    }
+
+    try {
+      setConfirmingPayment(true);
+      
+      const response = await fetch('/api/appointments', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          referenceNumber: selectedAppointment.referenceNumber,
+          mpesaCode: mpesaCode.trim(),
+          mpesaPhone: mpesaPhone.trim() || selectedAppointment.customerPhone,
+          confirmedBy: currentUser?.name || 'Admin',
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        toast.success('Payment confirmed! Appointment is now confirmed.');
+        
+        // Update appointments list
+        setAppointments(prev =>
+          prev.map(apt =>
+            apt.id === selectedAppointment.id
+              ? {
+                  ...apt,
+                  status: 'CONFIRMED',
+                  paymentStatus: 'PAID',
+                  mpesaCode: mpesaCode.trim(),
+                  mpesaPhone: mpesaPhone.trim() || apt.customerPhone,
+                }
+              : apt
+          )
+        );
+        
+        // Close modal and reset
+        setPaymentModalOpen(false);
+        setMpesaCode("");
+        setMpesaPhone("");
+        setSelectedAppointment(null);
+      } else {
+        toast.error(result.message || 'Failed to confirm payment');
+      }
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      toast.error('An error occurred while confirming payment');
+    } finally {
+      setConfirmingPayment(false);
+    }
+  };
+
   // Cancel appointment
   const handleCancelAppointment = async (appointmentId: string) => {
     if (!confirm('Are you sure you want to cancel this appointment?')) {
@@ -201,6 +288,17 @@ export default function AdminDashboard() {
       CANCELLED: 'bg-red-100 text-red-800 border-red-200',
       COMPLETED: 'bg-blue-100 text-blue-800 border-blue-200',
       NO_SHOW: 'bg-gray-100 text-gray-800 border-gray-200',
+    };
+    return colors[status as keyof typeof colors] || colors.PENDING;
+  };
+
+  // Get payment status badge color
+  const getPaymentStatusBadge = (status: string) => {
+    const colors = {
+      PAID: 'bg-green-100 text-green-800 border-green-200',
+      PENDING: 'bg-amber-100 text-amber-800 border-amber-200',
+      FAILED: 'bg-red-100 text-red-800 border-red-200',
+      REFUNDED: 'bg-gray-100 text-gray-800 border-gray-200',
     };
     return colors[status as keyof typeof colors] || colors.PENDING;
   };
@@ -357,7 +455,7 @@ export default function AdminDashboard() {
                         {dayAppointments.map((appointment) => (
                           <Card key={appointment.id} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                 {/* Time */}
                                 <div className="flex items-center gap-3 min-w-[120px]">
                                   <Clock className="h-5 w-5 text-muted-foreground" />
@@ -380,6 +478,9 @@ export default function AdminDashboard() {
                                   <div className="text-xs text-muted-foreground">
                                     {appointment.customerEmail}
                                   </div>
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    Ref: {appointment.referenceNumber}
+                                  </div>
                                 </div>
                                 
                                 {/* Barber (Admin only) */}
@@ -390,41 +491,62 @@ export default function AdminDashboard() {
                                   </div>
                                 )}
                                 
-                                {/* Status & Actions */}
-                                <div className="flex items-center gap-3">
+                                {/* Status & Payment */}
+                                <div className="flex flex-col gap-2">
                                   <Badge 
                                     variant="outline" 
                                     className={getStatusBadge(appointment.status)}
                                   >
                                     {appointment.status}
                                   </Badge>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={getPaymentStatusBadge(appointment.paymentStatus)}
+                                  >
+                                    {appointment.paymentStatus}
+                                  </Badge>
+                                </div>
+                                
+                                {/* Actions */}
+                                <div className="flex items-center gap-2">
+                                  {/* Confirm Payment Button (Only for pending payments) */}
+                                  {appointment.paymentStatus === 'PENDING' && currentUser?.role === 'ADMIN' && (
+                                    <Button 
+                                      variant="default" 
+                                      size="sm"
+                                      className="bg-green-600 hover:bg-green-700"
+                                      onClick={() => openPaymentModal(appointment)}
+                                    >
+                                      <CreditCard className="h-4 w-4 mr-2" />
+                                      Confirm Payment
+                                    </Button>
+                                  )}
                                   
-                                  <div className="flex space-x-1">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    asChild
+                                  >
+                                    <Link href={`/appointments/${appointment.id}`}>
+                                      <Edit className="h-4 w-4" />
+                                    </Link>
+                                  </Button>
+                                  
+                                  {appointment.status !== 'CANCELLED' && (
                                     <Button 
                                       variant="ghost" 
-                                      size="sm"
-                                      asChild
+                                      size="sm" 
+                                      className="text-red-500 hover:text-red-700"
+                                      onClick={() => handleCancelAppointment(appointment.id)}
+                                      disabled={cancelling === appointment.id}
                                     >
-                                      <Link href={`/appointments/${appointment.id}`}>
-                                        <Edit className="h-4 w-4" />
-                                      </Link>
+                                      {cancelling === appointment.id ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <X className="h-4 w-4" />
+                                      )}
                                     </Button>
-                                    {appointment.status !== 'CANCELLED' && (
-                                      <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="text-red-500 hover:text-red-700"
-                                        onClick={() => handleCancelAppointment(appointment.id)}
-                                        disabled={cancelling === appointment.id}
-                                      >
-                                        {cancelling === appointment.id ? (
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                          <X className="h-4 w-4" />
-                                        )}
-                                      </Button>
-                                    )}
-                                  </div>
+                                  )}
                                 </div>
                               </div>
                             </CardContent>
@@ -481,6 +603,93 @@ export default function AdminDashboard() {
           </>
         )}
       </Tabs>
+
+      {/* Payment Confirmation Modal */}
+      <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Payment</DialogTitle>
+            <DialogDescription>
+              Enter the M-Pesa transaction details to confirm this booking.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedAppointment && (
+            <div className="space-y-4 py-4">
+              {/* Appointment Details */}
+              <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                <h4 className="font-semibold text-sm mb-2">Booking Details</h4>
+                <div className="space-y-1 text-sm">
+                  <p><span className="text-muted-foreground">Customer:</span> <strong>{selectedAppointment.customerName}</strong></p>
+                  <p><span className="text-muted-foreground">Service:</span> {selectedAppointment.serviceName}</p>
+                  <p><span className="text-muted-foreground">Amount:</span> <strong className="text-amber-600">Kes {selectedAppointment.servicePrice}</strong></p>
+                  <p><span className="text-muted-foreground">Reference:</span> {selectedAppointment.referenceNumber}</p>
+                </div>
+              </div>
+
+              {/* M-Pesa Code Input */}
+              <div className="space-y-2">
+                <Label htmlFor="mpesaCode">M-Pesa Transaction Code *</Label>
+                <Input
+                  id="mpesaCode"
+                  placeholder="e.g., SH12ABC3DE"
+                  value={mpesaCode}
+                  onChange={(e) => setMpesaCode(e.target.value.toUpperCase())}
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter the M-Pesa confirmation code from the customer's SMS
+                </p>
+              </div>
+
+              {/* M-Pesa Phone Input */}
+              <div className="space-y-2">
+                <Label htmlFor="mpesaPhone">M-Pesa Phone Number (Optional)</Label>
+                <Input
+                  id="mpesaPhone"
+                  placeholder="e.g., 0700000000"
+                  value={mpesaPhone}
+                  onChange={(e) => setMpesaPhone(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Phone number used for payment (defaults to customer phone)
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPaymentModalOpen(false);
+                setMpesaCode("");
+                setMpesaPhone("");
+              }}
+              disabled={confirmingPayment}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmPayment}
+              disabled={confirmingPayment || !mpesaCode.trim()}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {confirmingPayment ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Confirming...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Confirm Payment
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
