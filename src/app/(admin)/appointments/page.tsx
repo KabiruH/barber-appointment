@@ -460,9 +460,14 @@ export default function AdminDashboard() {
                                 <div className="flex items-center gap-3 min-w-[120px]">
                                   <Clock className="h-5 w-5 text-muted-foreground" />
                                   <div>
-                                    <div className="font-semibold">
-                                      {format(new Date(appointment.startTime), "h:mm a")}
-                                    </div>
+                            <div className="font-semibold">
+  {new Date(appointment.startTime).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Africa/Nairobi'
+  })}
+</div>
                                     <div className="text-xs text-muted-foreground">
                                       {appointment.serviceDuration} min
                                     </div>
