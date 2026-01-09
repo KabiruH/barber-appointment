@@ -15,14 +15,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -34,6 +26,7 @@ import { format, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfM
 import { CalendarDays, Clock, User, Loader2, X, Edit, Filter, CheckCircle, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { EditAppointmentModal } from "@/components/appointment/EditAppointmentModal";
 
 interface Appointment {
   id: string;
@@ -72,21 +65,24 @@ export default function AdminDashboard() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState<string | null>(null);
-  
+
   // Payment confirmation modal state
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [mpesaCode, setMpesaCode] = useState("");
   const [mpesaPhone, setMpesaPhone] = useState("");
   const [confirmingPayment, setConfirmingPayment] = useState(false);
-  
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [appointmentToEdit, setAppointmentToEdit] = useState<Appointment | null>(null);
+
   // Fetch current user
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
         const response = await fetch('/api/auth/check');
         const result = await response.json();
-        
+
         if (result.isAuthenticated) {
           setCurrentUser(result.user);
         }
@@ -94,10 +90,10 @@ export default function AdminDashboard() {
         console.error('Error fetching user:', error);
       }
     };
-    
+
     fetchCurrentUser();
   }, []);
-  
+
   // Fetch appointments
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -105,17 +101,17 @@ export default function AdminDashboard() {
         setLoading(true);
         const response = await fetch('/api/appointments');
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
           let filteredAppointments = result.data;
-          
+
           // Filter by barber if current user is a barber
           if (currentUser?.role === 'BARBER') {
             filteredAppointments = filteredAppointments.filter(
               (apt: Appointment) => apt.barber.id === currentUser.id
             );
           }
-          
+
           setAppointments(filteredAppointments);
         } else {
           toast.error('Failed to fetch appointments');
@@ -127,19 +123,19 @@ export default function AdminDashboard() {
         setLoading(false);
       }
     };
-    
+
     if (currentUser) {
       fetchAppointments();
     }
   }, [currentUser]);
-  
+
   // Filter appointments by date range
   const getFilteredAppointments = () => {
     const now = new Date();
-    
+
     return appointments.filter(apt => {
       const aptDate = new Date(apt.startTime);
-      
+
       switch (dateFilter) {
         case 'today':
           return aptDate >= startOfDay(now) && aptDate <= endOfDay(now);
@@ -154,12 +150,25 @@ export default function AdminDashboard() {
         default:
           return true;
       }
-    }).sort((a, b) => 
+    }).sort((a, b) =>
       new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
     );
   };
 
   const filteredAppointments = getFilteredAppointments();
+
+  const openEditModal = (appointment: Appointment) => {
+    setAppointmentToEdit(appointment);
+    setEditModalOpen(true);
+  };
+
+  const handleEditSuccess = (updatedAppointment: Appointment) => {
+    setAppointments(prev =>
+      prev.map(apt =>
+        apt.id === updatedAppointment.id ? updatedAppointment : apt
+      )
+    );
+  };
 
   // Group appointments by date
   const groupedAppointments = filteredAppointments.reduce((groups, apt) => {
@@ -188,7 +197,7 @@ export default function AdminDashboard() {
   // Confirm payment
   const handleConfirmPayment = async () => {
     if (!selectedAppointment) return;
-    
+
     if (!mpesaCode.trim()) {
       toast.error("Please enter M-Pesa transaction code");
       return;
@@ -196,7 +205,7 @@ export default function AdminDashboard() {
 
     try {
       setConfirmingPayment(true);
-      
+
       const response = await fetch('/api/appointments', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -212,22 +221,22 @@ export default function AdminDashboard() {
 
       if (response.ok && result.success) {
         toast.success('Payment confirmed! Appointment is now confirmed.');
-        
+
         // Update appointments list
         setAppointments(prev =>
           prev.map(apt =>
             apt.id === selectedAppointment.id
               ? {
-                  ...apt,
-                  status: 'CONFIRMED',
-                  paymentStatus: 'PAID',
-                  mpesaCode: mpesaCode.trim(),
-                  mpesaPhone: mpesaPhone.trim() || apt.customerPhone,
-                }
+                ...apt,
+                status: 'CONFIRMED',
+                paymentStatus: 'PAID',
+                mpesaCode: mpesaCode.trim(),
+                mpesaPhone: mpesaPhone.trim() || apt.customerPhone,
+              }
               : apt
           )
         );
-        
+
         // Close modal and reset
         setPaymentModalOpen(false);
         setMpesaCode("");
@@ -262,10 +271,10 @@ export default function AdminDashboard() {
 
       if (response.ok && result.success) {
         toast.success('Appointment cancelled successfully');
-        setAppointments(prev => 
-          prev.map(apt => 
-            apt.id === appointmentId 
-              ? { ...apt, status: 'CANCELLED' } 
+        setAppointments(prev =>
+          prev.map(apt =>
+            apt.id === appointmentId
+              ? { ...apt, status: 'CANCELLED' }
               : apt
           )
         );
@@ -319,12 +328,12 @@ export default function AdminDashboard() {
             {currentUser?.role === 'ADMIN' ? 'Admin Dashboard' : 'My Appointments'}
           </h1>
           <p className="text-muted-foreground">
-            {currentUser?.role === 'ADMIN' 
-              ? 'Manage appointments and schedules' 
+            {currentUser?.role === 'ADMIN'
+              ? 'Manage appointments and schedules'
               : 'View and manage your appointments'}
           </p>
         </div>
-        
+
         {currentUser?.role === 'ADMIN' && (
           <div className="flex gap-2">
             <Button asChild variant="outline">
@@ -336,7 +345,7 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
-      
+
       <Tabs defaultValue="appointments" className="space-y-6">
         <TabsList>
           <TabsTrigger value="appointments">Appointments</TabsTrigger>
@@ -347,7 +356,7 @@ export default function AdminDashboard() {
             </>
           )}
         </TabsList>
-        
+
         <TabsContent value="appointments" className="space-y-6">
           {/* Statistics Overview */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -364,7 +373,7 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center">
@@ -378,7 +387,7 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center">
@@ -392,7 +401,7 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center">
@@ -418,7 +427,7 @@ export default function AdminDashboard() {
                     {filteredAppointments.length} appointment{filteredAppointments.length !== 1 ? 's' : ''}
                   </CardDescription>
                 </div>
-                
+
                 {/* Date Filter */}
                 <Select value={dateFilter} onValueChange={(value) => setDateFilter(value as DateFilter)}>
                   <SelectTrigger className="w-[180px]">
@@ -449,7 +458,7 @@ export default function AdminDashboard() {
                           {dayAppointments.length} appointment{dayAppointments.length !== 1 ? 's' : ''}
                         </p>
                       </div>
-                      
+
                       {/* Appointments for this day */}
                       <div className="space-y-3">
                         {dayAppointments.map((appointment) => (
@@ -460,20 +469,26 @@ export default function AdminDashboard() {
                                 <div className="flex items-center gap-3 min-w-[120px]">
                                   <Clock className="h-5 w-5 text-muted-foreground" />
                                   <div>
-                            <div className="font-semibold">
-  {new Date(appointment.startTime).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-    timeZone: 'Africa/Nairobi'
-  })}
-</div>
+                                    <div className="font-semibold">
+                                      {(() => {
+                                        // Get time directly from the ISO string (format: "2026-01-07T11:00:00.000Z")
+                                        const timeString = appointment.startTime.split('T')[1]; // Gets "11:00:00.000Z"
+                                        const [hours, minutes] = timeString.split(':');
+
+                                        // Convert to 12-hour format
+                                        let hour = parseInt(hours);
+                                        const ampm = hour >= 12 ? 'PM' : 'AM';
+                                        hour = hour % 12 || 12;
+
+                                        return `${hour}:${minutes} ${ampm}`;
+                                      })()}
+                                    </div>
                                     <div className="text-xs text-muted-foreground">
                                       {appointment.serviceDuration} min
                                     </div>
                                   </div>
                                 </div>
-                                
+
                                 {/* Customer & Service */}
                                 <div className="flex-1">
                                   <div className="font-medium">{appointment.customerName}</div>
@@ -487,7 +502,7 @@ export default function AdminDashboard() {
                                     Ref: {appointment.referenceNumber}
                                   </div>
                                 </div>
-                                
+
                                 {/* Barber (Admin only) */}
                                 {currentUser?.role === 'ADMIN' && (
                                   <div className="flex items-center gap-2">
@@ -495,52 +510,52 @@ export default function AdminDashboard() {
                                     <span className="text-sm">{appointment.barber.name}</span>
                                   </div>
                                 )}
-                                
+
                                 {/* Status & Payment */}
                                 <div className="flex flex-col gap-2">
-                                  <Badge 
-                                    variant="outline" 
+                                  <Badge
+                                    variant="outline"
                                     className={getStatusBadge(appointment.status)}
                                   >
                                     {appointment.status}
                                   </Badge>
-                                  <Badge 
-                                    variant="outline" 
+                                  <Badge
+                                    variant="outline"
                                     className={getPaymentStatusBadge(appointment.paymentStatus)}
                                   >
                                     {appointment.paymentStatus}
                                   </Badge>
                                 </div>
-                                
+
                                 {/* Actions */}
                                 <div className="flex items-center gap-2">
                                   {/* Confirm Payment Button (Only for pending payments) */}
-                                  {appointment.paymentStatus === 'PENDING' && currentUser?.role === 'ADMIN' && (
-                                    <Button 
-                                      variant="default" 
-                                      size="sm"
-                                      className="bg-green-600 hover:bg-green-700"
-                                      onClick={() => openPaymentModal(appointment)}
-                                    >
-                                      <CreditCard className="h-4 w-4 mr-2" />
-                                      Confirm Payment
-                                    </Button>
-                                  )}
-                                  
-                                  <Button 
-                                    variant="ghost" 
+                                  {appointment.paymentStatus === 'PENDING' &&
+                                    appointment.status !== 'CANCELLED' &&
+                                    currentUser?.role === 'ADMIN' && (
+                                      <Button
+                                        variant="default"
+                                        size="sm"
+                                        className="bg-green-600 hover:bg-green-700"
+                                        onClick={() => openPaymentModal(appointment)}
+                                      >
+                                        <CreditCard className="h-4 w-4 mr-2" />
+                                        Confirm Payment
+                                      </Button>
+                                    )}
+
+                                  <Button
+                                    variant="ghost"
                                     size="sm"
-                                    asChild
+                                    onClick={() => openEditModal(appointment)}
                                   >
-                                    <Link href={`/appointments/${appointment.id}`}>
-                                      <Edit className="h-4 w-4" />
-                                    </Link>
+                                    <Edit className="h-4 w-4" />
                                   </Button>
-                                  
+
                                   {appointment.status !== 'CANCELLED' && (
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       className="text-red-500 hover:text-red-700"
                                       onClick={() => handleCancelAppointment(appointment.id)}
                                       disabled={cancelling === appointment.id}
@@ -575,7 +590,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {currentUser?.role === 'ADMIN' && (
           <>
             <TabsContent value="blocked">
@@ -591,7 +606,7 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             <TabsContent value="schedule">
               <Card>
                 <CardHeader>
@@ -618,7 +633,7 @@ export default function AdminDashboard() {
               Enter the M-Pesa transaction details to confirm this booking.
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedAppointment && (
             <div className="space-y-4 py-4">
               {/* Appointment Details */}
@@ -692,9 +707,16 @@ export default function AdminDashboard() {
                 </>
               )}
             </Button>
+            
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <EditAppointmentModal
+              open={editModalOpen}
+              onOpenChange={setEditModalOpen}
+              appointment={appointmentToEdit}
+              onSuccess={handleEditSuccess}
+            />
     </div>
   );
 }

@@ -5,6 +5,10 @@ import { z } from "zod";
 
 // Validation schema for appointment updates
 const updateAppointmentSchema = z.object({
+  // Status update (for cancellation, completion, etc.)
+  status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW']).optional(),
+  
+  // Other optional fields for full appointment edits
   serviceName: z.string().optional(),
   servicePrice: z.number().optional(),
   serviceDuration: z.number().optional(),
@@ -19,10 +23,10 @@ const updateAppointmentSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-{ params }: { params: Promise<{ id: string }> } 
+  { params }: { params: Promise<{ id: string }> } 
 ) {
   try {
-     const { id: appointmentId } = await params; 
+    const { id: appointmentId } = await params; 
     
     // Find the existing appointment
     const existingAppointment = await prisma.appointment.findUnique({
@@ -33,14 +37,6 @@ export async function PATCH(
       return NextResponse.json(
         { success: false, message: "Appointment not found" },
         { status: 404 }
-      );
-    }
-    
-    // Check if appointment is in the past
-    if (new Date(existingAppointment.startTime) < new Date()) {
-      return NextResponse.json(
-        { success: false, message: "Cannot update past appointments" },
-        { status: 400 }
       );
     }
     
@@ -62,6 +58,7 @@ export async function PATCH(
     }
     
     const { 
+      status,
       serviceName,
       servicePrice,
       serviceDuration,
@@ -74,8 +71,48 @@ export async function PATCH(
       notes 
     } = validatedData.data;
     
-    // Prepare update data
+    // If only status is being updated (for cancel/complete operations)
+    if (status && Object.keys(validatedData.data).length === 1) {
+      const updatedAppointment = await prisma.appointment.update({
+        where: { id: appointmentId },
+        data: {
+          status,
+          updatedAt: new Date(),
+        },
+        include: {
+          barber: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      });
+      
+      return NextResponse.json(
+        { 
+          success: true, 
+          message: `Appointment ${status.toLowerCase()} successfully`,
+          data: updatedAppointment
+        },
+        { status: 200 }
+      );
+    }
+    
+    // Check if appointment is in the past (only for full edits, not status changes)
+    if ((date || time) && new Date(existingAppointment.startTime) < new Date()) {
+      return NextResponse.json(
+        { success: false, message: "Cannot update past appointments" },
+        { status: 400 }
+      );
+    }
+    
+    // Prepare update data for full appointment edits
     const updateData: any = {};
+    
+    // Status update
+    if (status) updateData.status = status;
     
     // Customer info updates
     if (name) updateData.customerName = name;
@@ -91,7 +128,7 @@ export async function PATCH(
     // Handle date/time updates
     if (date && time) {
       // Parse date and time
-      const dateParts = new Date(date);
+      const [year, month, day] = date.split('-').map(Number);
       const timeParts = time.match(/(\d+):(\d+) ([AP]M)/);
       
       if (!timeParts) {
@@ -112,8 +149,7 @@ export async function PATCH(
         hours = 0;
       }
       
-      const startTime = new Date(dateParts);
-      startTime.setHours(hours, minutes, 0, 0);
+      const startTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
       
       // Get service duration (use updated duration if provided, otherwise use existing)
       const duration = serviceDuration || existingAppointment.serviceDuration;
@@ -161,7 +197,7 @@ export async function PATCH(
         );
       }
       
-      // Check for time blockouts - Changed barberId to userId
+      // Check for time blockouts
       const conflictingBlockouts = await prisma.timeBlockout.findMany({
         where: {
           userId: barberId || existingAppointment.barberId,
@@ -203,12 +239,12 @@ export async function PATCH(
         where: { id: barberId },
       });
       
-     if (!barber || !barber.isActive || (barber.role !== 'BARBER' && barber.role !== 'ADMIN')) {
-  return NextResponse.json(
-    { success: false, message: "Selected user cannot take appointments" },
-    { status: 404 }
-  );
-}
+      if (!barber || !barber.isActive || (barber.role !== 'BARBER' && barber.role !== 'ADMIN')) {
+        return NextResponse.json(
+          { success: false, message: "Selected user cannot take appointments" },
+          { status: 404 }
+        );
+      }
       
       updateData.barberId = barberId;
     }
@@ -228,31 +264,13 @@ export async function PATCH(
       },
     });
     
-    // Format the data for the client
-    const appointmentData = {
-      id: updatedAppointment.id,
-      referenceNumber: updatedAppointment.referenceNumber,
-      startTime: updatedAppointment.startTime.toISOString(),
-      endTime: updatedAppointment.endTime.toISOString(),
-      customerName: updatedAppointment.customerName,
-      customerEmail: updatedAppointment.customerEmail,
-      customerPhone: updatedAppointment.customerPhone,
-      notes: updatedAppointment.notes,
-      barberId: updatedAppointment.barberId,
-      barberName: updatedAppointment.barber.name,
-      serviceName: updatedAppointment.serviceName,
-      servicePrice: updatedAppointment.servicePrice,
-      serviceDuration: updatedAppointment.serviceDuration,
-      status: updatedAppointment.status,
-    };
-    
     // TODO: Send update confirmation email here
     
     return NextResponse.json(
       { 
         success: true, 
         message: "Appointment updated successfully", 
-        data: appointmentData
+        data: updatedAppointment
       },
       { status: 200 }
     );
@@ -261,6 +279,50 @@ export async function PATCH(
     console.error("Update appointment error:", error);
     return NextResponse.json(
       { success: false, message: "An error occurred while updating the appointment" },
+      { status: 500 }
+    );
+  }
+}
+
+// GET endpoint to fetch single appointment
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: appointmentId } = await params;
+
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: {
+        barber: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            bio: true,
+            imageUrl: true,
+          }
+        }
+      }
+    });
+
+    if (!appointment) {
+      return NextResponse.json(
+        { success: false, message: "Appointment not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: true, data: appointment },
+      { status: 200 }
+    );
+
+  } catch (error) {
+    console.error("Fetch appointment error:", error);
+    return NextResponse.json(
+      { success: false, message: "An error occurred while fetching the appointment" },
       { status: 500 }
     );
   }
