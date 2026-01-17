@@ -5,11 +5,10 @@ import { z } from "zod";
 import { generateReferenceNumber } from "@/lib/utils";
 import { sendCustomerBookingEmail, sendAdminNotificationEmail, sendPaymentConfirmationEmail } from "@/lib/email";
 
-// Updated validation schema with fixed price
+// Updated validation schema
 const appointmentSchema = z.object({
   serviceName: z.string(),
   servicePrice: z.number(),
-  serviceDuration: z.number(),
   barberId: z.string(),
   date: z.string(), // Date string in YYYY-MM-DD format
   time: z.string(), // Time in format "1:00 PM"
@@ -37,7 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const { serviceName, servicePrice, serviceDuration, barberId, date, time, name, email, phone, notes } = validatedData.data;
+    const { serviceName, servicePrice, barberId, date, time, name, email, phone, notes } = validatedData.data;
     
     // Parse the time
     const timeParts = time.match(/(\d+):(\d+) ([AP]M)/);
@@ -60,13 +59,22 @@ export async function POST(request: NextRequest) {
       hours = 0;
     }
     
-    // FIXED: Parse date correctly to avoid timezone issues
-    // Split YYYY-MM-DD and create date in local timezone
+    // Parse date correctly to avoid timezone issues
     const [year, month, day] = date.split('-').map(Number);
     const startTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
     
-    // Calculate end time based on service duration
-    const endTime = new Date(startTime.getTime() + serviceDuration * 60000);
+    // Check if the appointment time is in the past
+    const now = new Date();
+    if (startTime < now) {
+      return NextResponse.json(
+        { success: false, message: "Cannot book appointments in the past. Please select a future time slot." },
+        { status: 400 }
+      );
+    }
+    
+    // Default duration: 1 hour (60 minutes) for end time calculation
+    const defaultDuration = 60;
+    const endTime = new Date(startTime.getTime() + defaultDuration * 60000);
     
     // Verify barber exists and is active
     const barber = await prisma.user.findUnique({
@@ -80,8 +88,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Allow both BARBER and ADMIN roles to take appointments
-    if (barber.role !== 'BARBER' && barber.role !== 'ADMIN') {
+    // Allow BARBER, BEAUTICIAN and ADMIN roles to take appointments
+    if (!['BARBER', 'BEAUTICIAN', 'ADMIN'].includes(barber.role)) {
       return NextResponse.json(
         { success: false, message: "Selected user cannot take appointments" },
         { status: 400 }
@@ -175,10 +183,9 @@ export async function POST(request: NextRequest) {
         notes,
         barberId,
         serviceName,
-        servicePrice: servicePrice.toString(), // Dynamic price as string for Decimal
-        serviceDuration,
-        status: "PENDING", // Changed from CONFIRMED to PENDING
-        paymentStatus: "PENDING", // Payment pending
+        servicePrice: servicePrice.toString(),
+        status: "PENDING",
+        paymentStatus: "PENDING",
       },
       include: {
         barber: {
@@ -200,7 +207,6 @@ export async function POST(request: NextRequest) {
       date: startTime,
       time,
       referenceNumber: appointment.referenceNumber,
-      duration: serviceDuration,
       notes: notes || undefined,
       phone: phone || undefined,
     };
@@ -388,7 +394,6 @@ export async function PATCH(request: NextRequest) {
       date: updatedAppointment.startTime,
       time: formattedTime,
       referenceNumber: updatedAppointment.referenceNumber,
-      duration: updatedAppointment.serviceDuration,
     };
 
     // Send payment confirmation email asynchronously

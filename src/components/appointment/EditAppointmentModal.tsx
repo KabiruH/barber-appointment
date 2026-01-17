@@ -46,7 +46,6 @@ interface Appointment {
   customerPhone?: string;
   serviceName: string;
   servicePrice: string;
-  serviceDuration: number;
   barber: {
     id: string;
     name: string;
@@ -111,44 +110,44 @@ export function EditAppointmentModal({
   const selectedBarberId = form.watch("barberId");
   const selectedDate = form.watch("date");
 
-// Load initial values when appointment changes
-useEffect(() => {
-  if (appointment && open) {
-    console.log("Loading appointment:", appointment);
-    
-    // Find the service ID from the service name
-    const service = SERVICES.find(s => s.name === appointment.serviceName);
-    console.log("Found service:", service);
-    
-    // Parse the date from startTime
-    const appointmentDate = new Date(appointment.startTime);
-    console.log("Appointment date:", appointmentDate);
-    
-    // Format time from startTime - FIXED with leading zero
-    const timeString = appointment.startTime.split('T')[1]; // Gets "09:00:00.000Z"
-    const [hours, minutes] = timeString.split(':');
-    
-    // Convert to 12-hour format with SPACE before AM/PM
-    let hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    hour = hour % 12 || 12;
-    
-    // Add leading zero if needed (9 becomes "09")
-    const formattedHour = hour < 10 ? `0${hour}` : `${hour}`;
-    const formattedTime = `${formattedHour}:${minutes} ${ampm}`;
-    
-    console.log("Formatted time:", formattedTime);
+  // Load initial values when appointment changes
+  useEffect(() => {
+    if (appointment && open) {
+      console.log("Loading appointment:", appointment);
+      
+      // Find the service ID from the service name
+      const service = SERVICES.find(s => s.name === appointment.serviceName);
+      console.log("Found service:", service);
+      
+      // Parse the date from startTime
+      const appointmentDate = new Date(appointment.startTime);
+      console.log("Appointment date:", appointmentDate);
+      
+      // Format time from startTime - FIXED with leading zero
+      const timeString = appointment.startTime.split('T')[1]; // Gets "09:00:00.000Z"
+      const [hours, minutes] = timeString.split(':');
+      
+      // Convert to 12-hour format with SPACE before AM/PM
+      let hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      hour = hour % 12 || 12;
+      
+      // Add leading zero if needed (9 becomes "09")
+      const formattedHour = hour < 10 ? `0${hour}` : `${hour}`;
+      const formattedTime = `${formattedHour}:${minutes} ${ampm}`;
+      
+      console.log("Formatted time:", formattedTime);
 
-    form.reset({
-      serviceId: service?.id || "",
-      barberId: appointment.barber.id,
-      date: appointmentDate,
-      time: formattedTime,
-    });
-    
-    console.log("Form values after reset:", form.getValues());
-  }
-}, [appointment, open, form]);
+      form.reset({
+        serviceId: service?.id || "",
+        barberId: appointment.barber.id,
+        date: appointmentDate,
+        time: formattedTime,
+      });
+      
+      console.log("Form values after reset:", form.getValues());
+    }
+  }, [appointment, open, form]);
 
   // Fetch barbers
   useEffect(() => {
@@ -174,62 +173,60 @@ useEffect(() => {
     }
   }, [open]);
 
-// Fetch available time slots
-useEffect(() => {
-  const fetchTimeSlots = async () => {
-    if (!open) {
-      setTimeSlots([]);
-      return;
-    }
-
-    if (!selectedServiceId || !selectedBarberId || !selectedDate || !appointment) {
-      setTimeSlots([]);
-      return;
-    }
-    
-    const service = SERVICES.find(s => s.id === selectedServiceId);
-    if (!service) {
-      setTimeSlots([]);
-      return;
-    }
-    
-    try {
-      setLoadingTimeSlots(true);
-      const dateString = format(selectedDate, 'yyyy-MM-dd');
-      
-      console.log("Fetching time slots for:", {
-        dateString,
-        barberId: selectedBarberId,
-        duration: service.duration,
-        excludeAppointmentId: appointment.id
-      });
-      
-      // Include appointment ID to exclude it from conflict checking
-      const url = `/api/available-slots?date=${dateString}&barberId=${selectedBarberId}&duration=${service.duration}&excludeAppointmentId=${appointment.id}`;
-      
-      const response = await fetch(url);
-      const result = await response.json();
-      
-      console.log("Time slots response:", result);
-      
-      if (response.ok && result.success) {
-        console.log("Loaded time slots:", result.data.availableSlots);
-        setTimeSlots(result.data.availableSlots || []);
-      } else {
-        console.error("Failed to load time slots:", result);
+  // Fetch available time slots
+  useEffect(() => {
+    const fetchTimeSlots = async () => {
+      if (!open) {
         setTimeSlots([]);
+        return;
       }
-    } catch (error) {
-      console.error('Error fetching time slots:', error);
-      setTimeSlots([]);
-    } finally {
-      setLoadingTimeSlots(false);
-    }
-  };
-  
-  fetchTimeSlots();
-  // FIXED: Use appointment.id instead of appointment object
-}, [open, selectedServiceId, selectedBarberId, selectedDate, appointment?.id]);
+
+      if (!selectedServiceId || !selectedBarberId || !selectedDate || !appointment) {
+        setTimeSlots([]);
+        return;
+      }
+      
+      const service = SERVICES.find(s => s.id === selectedServiceId);
+      if (!service) {
+        setTimeSlots([]);
+        return;
+      }
+      
+      try {
+        setLoadingTimeSlots(true);
+        const dateString = format(selectedDate, 'yyyy-MM-dd');
+        
+        console.log("Fetching time slots for:", {
+          dateString,
+          barberId: selectedBarberId,
+          excludeAppointmentId: appointment.id
+        });
+        
+        // Include appointment ID to exclude it from conflict checking
+        const url = `/api/available-slots?date=${dateString}&barberId=${selectedBarberId}&excludeAppointmentId=${appointment.id}`;
+        
+        const response = await fetch(url);
+        const result = await response.json();
+        
+        console.log("Time slots response:", result);
+        
+        if (response.ok && result.success) {
+          console.log("Loaded time slots:", result.data.availableSlots);
+          setTimeSlots(result.data.availableSlots || []);
+        } else {
+          console.error("Failed to load time slots:", result);
+          setTimeSlots([]);
+        }
+      } catch (error) {
+        console.error('Error fetching time slots:', error);
+        setTimeSlots([]);
+      } finally {
+        setLoadingTimeSlots(false);
+      }
+    };
+    
+    fetchTimeSlots();
+  }, [open, selectedServiceId, selectedBarberId, selectedDate, appointment?.id]);
 
   const onSubmit = async (data: EditAppointmentFormValues) => {
     if (!appointment) return;
@@ -251,7 +248,6 @@ useEffect(() => {
         body: JSON.stringify({
           serviceName: service.name,
           servicePrice: service.price,
-          serviceDuration: service.duration,
           barberId: data.barberId,
           date: dateString,
           time: data.time,
@@ -327,7 +323,7 @@ useEffect(() => {
               <SelectContent>
                 {SERVICES.map((service) => (
                   <SelectItem key={service.id} value={service.id}>
-                    {service.name} - Kes {service.price} ({service.duration} min)
+                    {service.name} - Kes {service.price}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -406,56 +402,56 @@ useEffect(() => {
             )}
           </div>
 
-{/* Time Selection */}
-<div className="space-y-2">
-  <Label htmlFor="time">Time</Label>
-  <Select
-    value={form.watch("time") || ""}
-    onValueChange={(value) => {
-      console.log("Time changed to:", value);
-      form.setValue("time", value);
-    }}
-    disabled={!selectedDate || loadingTimeSlots}
-  >
-    <SelectTrigger>
-      <SelectValue>
-        {form.watch("time") || "Select a time"}
-      </SelectValue>
-    </SelectTrigger>
-    <SelectContent>
-      {loadingTimeSlots ? (
-        <div className="p-2 text-center">
-          <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-        </div>
-      ) : timeSlots.length > 0 ? (
-        timeSlots.map((slot) => (
-          <SelectItem 
-            key={slot.time} 
-            value={slot.time}
-            disabled={slot.disabled}
-            className={slot.disabled ? "opacity-50" : ""}
-          >
-            <div className="flex items-center justify-between w-full">
-              <span>{slot.time}</span>
-              {slot.disabled && (
-                <span className="text-xs text-red-500 ml-2">(Booked)</span>
-              )}
-            </div>
-          </SelectItem>
-        ))
-      ) : (
-        <div className="p-2 text-center text-sm text-muted-foreground">
-          No available slots
-        </div>
-      )}
-    </SelectContent>
-  </Select>
-  {form.formState.errors.time && (
-    <p className="text-sm text-red-500">
-      {form.formState.errors.time.message}
-    </p>
-  )}
-</div>
+          {/* Time Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="time">Time</Label>
+            <Select
+              value={form.watch("time") || ""}
+              onValueChange={(value) => {
+                console.log("Time changed to:", value);
+                form.setValue("time", value);
+              }}
+              disabled={!selectedDate || loadingTimeSlots}
+            >
+              <SelectTrigger>
+                <SelectValue>
+                  {form.watch("time") || "Select a time"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {loadingTimeSlots ? (
+                  <div className="p-2 text-center">
+                    <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                  </div>
+                ) : timeSlots.length > 0 ? (
+                  timeSlots.map((slot) => (
+                    <SelectItem 
+                      key={slot.time} 
+                      value={slot.time}
+                      disabled={slot.disabled}
+                      className={slot.disabled ? "opacity-50" : ""}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span>{slot.time}</span>
+                        {slot.disabled && (
+                          <span className="text-xs text-red-500 ml-2">(Booked)</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="p-2 text-center text-sm text-muted-foreground">
+                    No available slots
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
+            {form.formState.errors.time && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.time.message}
+              </p>
+            )}
+          </div>
         </form>
 
         <DialogFooter>

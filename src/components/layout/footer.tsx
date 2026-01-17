@@ -13,8 +13,8 @@ export default function Footer() {
             <div>
               <h4 className="text-lg font-semibold mb-4">Hours</h4>
               <ul className="text-gray-400 space-y-2">
-                <li>Monday - Friday: 9am - 8pm</li>
-                <li>Saturday: 9am - 8pm</li>
+                <li>Monday - Friday: 8am - 9pm</li>
+                <li>Saturday: 8am - 9pm</li>
                 <li>Sunday: 10am - 8pm</li>
               </ul>
             </div>

@@ -21,10 +21,6 @@ export function BookingSummary({ service }: BookingSummaryProps) {
             Kes {service.price.toLocaleString()}
           </span>
         </div>
-        <div className="flex justify-between items-center text-sm text-gray-600">
-          <span>Duration:</span>
-          <span>{service.duration} minutes</span>
-        </div>
         {service.description && (
           <p className="text-sm text-gray-600 pt-2 border-t">
             {service.description}

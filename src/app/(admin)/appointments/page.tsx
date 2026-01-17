@@ -40,7 +40,6 @@ interface Appointment {
   customerPhone?: string;
   serviceName: string;
   servicePrice: string;
-  serviceDuration: number;
   mpesaCode?: string;
   mpesaPhone?: string;
   barber: {
@@ -54,7 +53,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'ADMIN' | 'BARBER';
+  role: 'ADMIN' | 'BARBER' | 'BEAUTICIAN';
 }
 
 type DateFilter = 'today' | 'tomorrow' | 'week' | 'month' | 'all';
@@ -181,7 +180,6 @@ export default function AdminDashboard() {
   }, {} as Record<string, Appointment[]>);
 
   // Calculate statistics
-  const totalHours = appointments.reduce((sum, apt) => sum + apt.serviceDuration, 0) / 60;
   const uniqueCustomers = new Set(appointments.map(apt => apt.customerEmail)).size;
   const confirmedCount = appointments.filter(apt => apt.status === 'CONFIRMED').length;
   const pendingCount = appointments.filter(apt => apt.status === 'PENDING').length;
@@ -483,9 +481,7 @@ export default function AdminDashboard() {
                                         return `${hour}:${minutes} ${ampm}`;
                                       })()}
                                     </div>
-                                    <div className="text-xs text-muted-foreground">
-                                      {appointment.serviceDuration} min
-                                    </div>
+                                    
                                   </div>
                                 </div>
 

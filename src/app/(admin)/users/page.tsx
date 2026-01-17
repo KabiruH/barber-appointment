@@ -16,14 +16,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, UserX, UserCheck } from "lucide-react";
 import { CreateUserDialog } from "@/components/admin/create-user-dialog";
+import { EditUserDialog } from "@/components/admin/edit-user-dialog";
 import { toast } from "sonner";
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role: 'ADMIN' | 'BARBER';
+  role: 'ADMIN' | 'BARBER' | 'BEAUTICIAN';
   isActive: boolean;
+  bio?: string | null;
+  imageUrl?: string | null;
   createdAt: string;
 }
 
@@ -31,6 +34,8 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const router = useRouter();
 
   const fetchUsers = async () => {
@@ -101,6 +106,24 @@ export default function UsersPage() {
     }
   };
 
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setEditDialogOpen(true);
+  };
+
+  const getRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case 'ADMIN':
+        return 'default';
+      case 'BEAUTICIAN':
+        return 'secondary';
+      case 'BARBER':
+        return 'outline';
+      default:
+        return 'secondary';
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -116,7 +139,7 @@ export default function UsersPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">User Management</h1>
-          <p className="text-muted-foreground">Manage admins and barbers</p>
+          <p className="text-muted-foreground">Manage admins, barbers, and beauticians</p>
         </div>
         <Button 
           onClick={() => setCreateDialogOpen(true)}
@@ -152,7 +175,7 @@ export default function UsersPage() {
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <Badge variant={user.role === 'ADMIN' ? 'default' : 'secondary'}>
+                    <Badge variant={getRoleBadgeVariant(user.role)}>
                       {user.role}
                     </Badge>
                   </TableCell>
@@ -165,6 +188,14 @@ export default function UsersPage() {
                     {new Date(user.createdAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditUser(user)}
+                      title="Edit user"
+                    >
+                      <Pencil className="h-4 w-4 text-blue-600" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -197,6 +228,13 @@ export default function UsersPage() {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onSuccess={fetchUsers}
+      />
+
+      <EditUserDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSuccess={fetchUsers}
+        user={selectedUser}
       />
     </div>
   );

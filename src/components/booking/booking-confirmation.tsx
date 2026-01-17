@@ -65,11 +65,6 @@ export function BookingConfirmation({
           </div>
           
           <div className="flex justify-between items-start border-b pb-2">
-            <span className="font-medium text-gray-600">Duration:</span>
-            <span>{selectedService?.duration} minutes</span>
-          </div>
-          
-          <div className="flex justify-between items-start border-b pb-2">
             <span className="font-medium text-gray-600">Customer:</span>
             <span>{formValues.name}</span>
           </div>

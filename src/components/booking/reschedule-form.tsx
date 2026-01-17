@@ -160,7 +160,7 @@ export default function RescheduleForm({ initialReference }: RescheduleFormProps
       try {
         setLoadingTimeSlots(true);
         const response = await fetch(
-          `/api/available-slots?date=${selectedDate.toISOString()}&barberId=${selectedBarberId}&duration=${service.duration}`
+          `/api/available-slots?date=${selectedDate.toISOString()}&barberId=${selectedBarberId}`
         );
         const result = await response.json();
         
@@ -251,7 +251,6 @@ export default function RescheduleForm({ initialReference }: RescheduleFormProps
         body: JSON.stringify({
           serviceName: service.name,
           servicePrice: service.price,
-          serviceDuration: service.duration,
           barberId: data.barberId,
           date: data.date.toISOString(),
           time: data.time,
@@ -280,13 +279,12 @@ export default function RescheduleForm({ initialReference }: RescheduleFormProps
         const newStartTime = new Date(data.date);
         newStartTime.setHours(hours, minutes, 0, 0);
         
-        const newEndTime = new Date(newStartTime.getTime() + service.duration * 60000);
+        const newEndTime = new Date(newStartTime.getTime());
         
         // Update local appointment details
         setAppointmentDetails({
           ...appointmentDetails,
           serviceName: service.name,
-          serviceDuration: service.duration,
           servicePrice: service.price.toString(),
           barberId: data.barberId,
           barberName: barbers.find(b => b.id === data.barberId)?.name || appointmentDetails.barberName,
@@ -419,10 +417,7 @@ export default function RescheduleForm({ initialReference }: RescheduleFormProps
               </span>
             </div>
             
-            <div className="flex justify-between items-start border-b pb-2">
-              <span className="font-medium text-gray-600">Duration:</span>
-              <span>{appointmentDetails.serviceDuration} minutes</span>
-            </div>
+           
             
             <div className="flex justify-between items-start border-b pb-2">
               <span className="font-medium text-gray-600">Customer:</span>

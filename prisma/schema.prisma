@@ -32,6 +32,7 @@ model User {
 enum UserRole {
   ADMIN
   BARBER
+  BEAUTICIAN
 }
 
 model Appointment {
@@ -52,7 +53,6 @@ model Appointment {
   // Service details stored directly (no foreign key)
   serviceName       String
   servicePrice      Decimal           @db.Decimal(10, 2)
-  serviceDuration   Int               // Duration in minutes
   
   // Payment fields (NEW)
   paymentStatus     PaymentStatus     @default(PENDING)

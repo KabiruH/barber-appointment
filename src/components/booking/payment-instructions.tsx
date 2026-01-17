@@ -24,7 +24,7 @@ export function PaymentInstructions({
 }: PaymentInstructionsProps) {
   const [copied, setCopied] = useState(false);
   const paybillNumber = "247247"; // Your M-Pesa Paybill Number
-  const accountNumber = "0756867444"; // Fixed account number for all payments
+  const accountNumber = "0766307990"; // Fixed account number for all payments
   
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);

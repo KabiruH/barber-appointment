@@ -1,7 +1,7 @@
-// components/admin/create-user-dialog.tsx
+// components/admin/edit-user-dialog.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -32,48 +32,50 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-const createUserSchema = z.object({
+const editUserSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
-  role: z.enum(["ADMIN", "BARBER"], {
+  role: z.enum(["ADMIN", "BARBER", "BEAUTICIAN"], {
     required_error: "Please select a role",
   }),
   bio: z.string().optional(),
   imageUrl: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
 });
 
-type CreateUserFormValues = z.infer<typeof createUserSchema>;
+type EditUserFormValues = z.infer<typeof editUserSchema>;
 
-interface CreateUserDialogProps {
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'ADMIN' | 'BARBER' | 'BEAUTICIAN';
+  bio?: string | null;
+  imageUrl?: string | null;
+}
+
+interface EditUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  user: User | null;
 }
 
-export function CreateUserDialog({
+export function EditUserDialog({
   open,
   onOpenChange,
   onSuccess,
-}: CreateUserDialogProps) {
+  user,
+}: EditUserDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const form = useForm<CreateUserFormValues>({
-    resolver: zodResolver(createUserSchema),
+  const form = useForm<EditUserFormValues>({
+    resolver: zodResolver(editUserSchema),
     defaultValues: {
       name: "",
       email: "",
-      password: "",
-      confirmPassword: "",
       role: "BARBER",
       bio: "",
       imageUrl: "",
@@ -82,19 +84,33 @@ export function CreateUserDialog({
 
   const selectedRole = form.watch("role");
 
-  async function onSubmit(data: CreateUserFormValues) {
+  // Update form when user changes
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        bio: user.bio || "",
+        imageUrl: user.imageUrl || "",
+      });
+    }
+  }, [user, form]);
+
+  async function onSubmit(data: EditUserFormValues) {
+    if (!user) return;
+    
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/admin/users", {
-        method: "POST",
+      const response = await fetch(`/api/admin/users/${user.id}`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           name: data.name,
           email: data.email,
-          password: data.password,
           role: data.role,
           bio: data.bio || undefined,
           imageUrl: data.imageUrl || undefined,
@@ -104,15 +120,14 @@ export function CreateUserDialog({
       const result = await response.json();
 
       if (response.ok && result.success) {
-        toast.success("User created successfully!");
-        form.reset();
+        toast.success("User updated successfully!");
         onOpenChange(false);
         onSuccess();
       } else {
-        toast.error(result.message || "Failed to create user");
+        toast.error(result.message || "Failed to update user");
       }
     } catch (error) {
-      console.error("Create user error:", error);
+      console.error("Update user error:", error);
       toast.error("An error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -123,9 +138,9 @@ export function CreateUserDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New User</DialogTitle>
+          <DialogTitle>Edit User</DialogTitle>
           <DialogDescription>
-            Add a new admin or barber to the system. They can change their password later.
+            Update user information and role.
           </DialogDescription>
         </DialogHeader>
 
@@ -166,79 +181,6 @@ export function CreateUserDialog({
                 )}
               />
 
-              {/* Password Field */}
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password *</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          {...field}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4 text-gray-400" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-gray-400" />
-                          )}
-                        </Button>
-                      </div>
-                    </FormControl>
-                    <FormDescription>
-                      Minimum 6 characters
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Confirm Password Field */}
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm Password *</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          type={showConfirmPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          {...field}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() =>
-                            setShowConfirmPassword(!showConfirmPassword)
-                          }
-                        >
-                          {showConfirmPassword ? (
-                            <EyeOff className="h-4 w-4 text-gray-400" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-gray-400" />
-                          )}
-                        </Button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               {/* Role Field */}
               <FormField
                 control={form.control}
@@ -249,6 +191,7 @@ export function CreateUserDialog({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -264,6 +207,8 @@ export function CreateUserDialog({
                     <FormDescription>
                       {selectedRole === "ADMIN"
                         ? "Full access to all features"
+                        : selectedRole === "BEAUTICIAN"
+                        ? "Can manage beauty appointments and availability"
                         : "Can manage appointments and availability"}
                     </FormDescription>
                     <FormMessage />
@@ -293,7 +238,7 @@ export function CreateUserDialog({
             </div>
 
             {/* Bio Field - Full Width */}
-            {selectedRole === "BARBER" && (
+            {(selectedRole === "BARBER" || selectedRole === "BEAUTICIAN") && (
               <FormField
                 control={form.control}
                 name="bio"
@@ -321,10 +266,7 @@ export function CreateUserDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  form.reset();
-                  onOpenChange(false);
-                }}
+                onClick={() => onOpenChange(false)}
                 disabled={isSubmitting}
               >
                 Cancel
@@ -337,10 +279,10 @@ export function CreateUserDialog({
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating...
+                    Updating...
                   </>
                 ) : (
-                  "Create User"
+                  "Update User"
                 )}
               </Button>
             </DialogFooter>

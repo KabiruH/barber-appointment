@@ -55,7 +55,6 @@ export async function GET(request: NextRequest) {
       barber: appointment.barber, // Include full barber object
       serviceName: appointment.serviceName,
       servicePrice: appointment.servicePrice.toString(), // Convert Decimal to string
-      serviceDuration: appointment.serviceDuration,
       status: appointment.status,
     };
     

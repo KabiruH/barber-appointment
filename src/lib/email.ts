@@ -12,7 +12,6 @@ interface BookingEmailData {
   date: Date;
   time: string;
   referenceNumber: string;
-  duration: number;
   notes?: string;
   phone?: string;
 }
@@ -28,7 +27,6 @@ export async function sendCustomerBookingEmail(data: BookingEmailData) {
     date,
     time,
     referenceNumber,
-    duration,
   } = data;
 
   const formattedDate = new Intl.DateTimeFormat('en-KE', {
@@ -51,7 +49,6 @@ export async function sendCustomerBookingEmail(data: BookingEmailData) {
         formattedDate,
         time,
         referenceNumber,
-        duration,
       }),
     });
 
@@ -79,7 +76,6 @@ export async function sendAdminNotificationEmail(data: BookingEmailData) {
     date,
     time,
     referenceNumber,
-    duration,
     phone,
     notes,
   } = data;
@@ -105,7 +101,6 @@ export async function sendAdminNotificationEmail(data: BookingEmailData) {
         formattedDate,
         time,
         referenceNumber,
-        duration,
         phone,
         notes,
       }),
@@ -163,7 +158,6 @@ export async function sendPaymentConfirmationEmail(data: BookingEmailData) {
       return { success: false, error };
     }
 
-    console.log('Payment confirmation email sent successfully:', emailData);
     return { success: true, data: emailData };
   } catch (error) {
     console.error('Error sending payment confirmation email:', error);
@@ -180,7 +174,6 @@ function generateCustomerEmailHTML(data: {
   formattedDate: string;
   time: string;
   referenceNumber: string;
-  duration: number;
 }) {
   const isHaircut = data.serviceName.toLowerCase().includes('haircut');
   const paymentAmount = isHaircut ? 1500 : data.servicePrice;
@@ -237,10 +230,6 @@ function generateCustomerEmailHTML(data: {
                         <td style="color: #78350f; font-weight: bold;">Date & Time:</td>
                         <td style="color: #1f2937;">${data.formattedDate}<br>${data.time}</td>
                       </tr>
-                      <tr>
-                        <td style="color: #78350f; font-weight: bold;">Duration:</td>
-                        <td style="color: #1f2937;">${data.duration} minutes</td>
-                      </tr>
                     </table>
                   </td>
                 </tr>
@@ -261,8 +250,8 @@ function generateCustomerEmailHTML(data: {
                     <ol style="margin: 0; padding-left: 20px; color: #7f1d1d; font-size: 14px; line-height: 1.8;">
                       <li>Go to M-Pesa menu</li>
                       <li>Select Lipa na M-Pesa → Pay Bill</li>
-                      <li>Business Number: <strong>400200</strong></li>
-                      <li>Account Number: <strong>${data.referenceNumber}</strong></li>
+                      <li>Business Number: <strong>247247</strong></li>
+                      <li>Account Number: <strong>0766307990</strong></li>
                       <li>Amount: <strong>${paymentAmount}</strong></li>
                       <li>Enter PIN and confirm</li>
                     </ol>
@@ -298,7 +287,7 @@ function generateCustomerEmailHTML(data: {
                 <strong>Havan Cutz</strong>
               </p>
               <p style="margin: 0 0 10px 0; color: #9ca3af; font-size: 13px;">
-                📞 +254 700 000 000 | 📧 info@havancutz.co.ke
+                📞 0716 107 113 | 📧 info@havancutz.co.ke
               </p>
               <p style="margin: 0; color: #6b7280; font-size: 12px;">
                 © 2025 Havan Cutz. All rights reserved.
@@ -325,7 +314,6 @@ function generateAdminEmailHTML(data: {
   formattedDate: string;
   time: string;
   referenceNumber: string;
-  duration: number;
   phone?: string;
   notes?: string;
 }) {
@@ -413,10 +401,6 @@ function generateAdminEmailHTML(data: {
                       <tr>
                         <td style="color: #78350f; font-weight: bold;">Date & Time:</td>
                         <td style="color: #1f2937; font-weight: bold;">${data.formattedDate}<br>${data.time}</td>
-                      </tr>
-                      <tr>
-                        <td style="color: #78350f; font-weight: bold;">Duration:</td>
-                        <td style="color: #1f2937;">${data.duration} minutes</td>
                       </tr>
                     </table>
                   </td>
@@ -552,7 +536,7 @@ function generatePaymentConfirmationHTML(data: {
                   [Your Address Here]
                 </p>
                 <p style="margin: 0; color: #78350f; font-size: 14px;">
-                  📞 0716107113<br>
+                  📞 0716 107 113<br>
                   📧 info@havancutz.co.ke
                 </p>
               </div>

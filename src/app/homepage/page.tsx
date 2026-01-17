@@ -12,7 +12,7 @@ export default function HomePage() {
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <Image
-            src="/1.jpg"
+            src="/1try.jpg"
             alt="Barber shop"
             fill
             className="object-cover opacity-70"
@@ -77,42 +77,42 @@ export default function HomePage() {
               title="Haircut"
               price="Kes 1,000"
               description="Precision cut with attention to detail, includes styling"
-              duration="45 min"
+              // duration="45 min"
             />
             
             <ServiceCard 
               title="Manicure"
-              price="Kes 1,500"
+              price="Kes 1,300"
               description="Professional hand care and nail grooming"
-              duration="45 min"
+              // duration="45 min"
             />
             
             <ServiceCard 
               title="Pedicure"
-              price="Kes 2,000"
+              price="Kes 1,500"
               description="Complete foot care and nail grooming"
-              duration="60 min"
+              // duration="60 min"
             />
             
             <ServiceCard 
-              title="Facial (Basic)"
-              price="Kes 3,500"
+              title="Facial"
+              price="Kes 4  ,500"
               description="Deep cleansing and rejuvenating facial treatment"
-              duration="60 min"
+              // duration="60 min"
             />
             
             <ServiceCard 
               title="Acrylics"
               price="Kes 5,000"
               description="Full acrylic nail set"
-              duration="120 min"
+              // duration="120 min"
             />
             
             <ServiceCard 
               title="Kids Haircut"
               price="Kes 1,000"
               description="Gentle haircuts for young gentlemen under 12"
-              duration="30 min"
+              // duration="30 min"
             />
           </div>
 
@@ -207,10 +207,10 @@ interface ServiceCardProps {
   title: string;
   price: string;
   description: string;
-  duration: string;
+  // duration: string;
 }
 
-function ServiceCard({ title, price, description, duration }: ServiceCardProps) {
+function ServiceCard({ title, price, description }: ServiceCardProps) {
   return (
     <Card className="overflow-hidden border-0 shadow-lg transition-all hover:shadow-2xl hover:-translate-y-1 bg-white/90 backdrop-blur-sm">
       <CardHeader className="pb-4">
@@ -219,8 +219,7 @@ function ServiceCard({ title, price, description, duration }: ServiceCardProps) 
           <span className="text-lg font-bold text-amber-600">{price}</span>
         </div>
         <div className="flex items-center text-sm text-gray-500">
-          <Clock className="mr-2 h-4 w-4" />
-          {duration}
+         
         </div>
       </CardHeader>
       <CardContent>

@@ -8,8 +8,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const dateParam = searchParams.get('date');
     const barberId = searchParams.get('barberId');
-    const durationParam = searchParams.get('duration');
-    const excludeAppointmentId = searchParams.get('excludeAppointmentId'); // NEW: for rescheduling
+    const excludeAppointmentId = searchParams.get('excludeAppointmentId'); // For rescheduling
     
     if (!dateParam || !barberId) {
       return NextResponse.json(
@@ -19,13 +18,12 @@ export async function GET(request: NextRequest) {
     }
     
     const selectedDate = new Date(dateParam);
-    const serviceDuration = durationParam ? parseInt(durationParam) : 60;
     
     // Verify barber exists and is active
     const barber = await prisma.user.findUnique({
       where: { id: barberId },
     });
-
+    
     if (!barber || !barber.isActive) {
       return NextResponse.json(
         { success: false, message: "Barber not found or inactive" },
@@ -39,8 +37,11 @@ export async function GET(request: NextRequest) {
     const endOfDay = new Date(selectedDate);
     endOfDay.setHours(23, 59, 59, 999);
     
+    // Check if selected date is today
+    const now = new Date();
+    const isToday = selectedDate.toDateString() === now.toDateString();
+    
     // Fetch existing appointments for this barber on this day
-    // UPDATED: Exclude current appointment if rescheduling
     const whereClause: any = {
       barberId,
       status: { notIn: ["CANCELLED", "NO_SHOW"] },
@@ -49,12 +50,12 @@ export async function GET(request: NextRequest) {
         lte: endOfDay,
       },
     };
-
+    
     // If rescheduling, exclude the current appointment
     if (excludeAppointmentId) {
       whereClause.id = { not: excludeAppointmentId };
     }
-
+    
     const existingAppointments = await prisma.appointment.findMany({
       where: whereClause,
       select: {
@@ -62,7 +63,22 @@ export async function GET(request: NextRequest) {
         endTime: true,
       },
     });
-
+    
+    // Fetch time blockouts for this barber on this day
+    const blockouts = await prisma.timeBlockout.findMany({
+      where: {
+        userId: barberId,
+        startTime: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      select: {
+        startTime: true,
+        endTime: true,
+      },
+    });
+    
     // Define working hours (7am to 8pm)
     const workStart = new Date(selectedDate);
     workStart.setHours(7, 0, 0, 0);
@@ -74,16 +90,22 @@ export async function GET(request: NextRequest) {
     const timeSlots = [];
     let currentSlot = new Date(workStart);
     
+    // Default slot duration: 1 hour
+    const slotDuration = 60; // minutes
+    
     while (currentSlot < workEnd) {
-      const slotEnd = new Date(currentSlot.getTime() + serviceDuration * 60000);
+      const slotEnd = new Date(currentSlot.getTime() + slotDuration * 60000);
       
       // Don't include slots that extend beyond 8pm
       if (slotEnd > workEnd) {
         break;
       }
       
+      // Check if this slot is in the past (only for today)
+      const isPast = isToday && currentSlot < now;
+      
       // Check if this slot conflicts with any appointment
-      const hasConflict = existingAppointments.some(apt => {
+      const hasAppointmentConflict = existingAppointments.some(apt => {
         const aptStart = new Date(apt.startTime);
         const aptEnd = new Date(apt.endTime);
         
@@ -95,14 +117,28 @@ export async function GET(request: NextRequest) {
         );
       });
       
+      // Check if this slot conflicts with any blockout
+      const hasBlockoutConflict = blockouts.some(blockout => {
+        const blockStart = new Date(blockout.startTime);
+        const blockEnd = new Date(blockout.endTime);
+        
+        // Check if there's any overlap
+        return (
+          (currentSlot >= blockStart && currentSlot < blockEnd) ||
+          (slotEnd > blockStart && slotEnd <= blockEnd) ||
+          (currentSlot <= blockStart && slotEnd >= blockEnd)
+        );
+      });
+      
       const timeString = format(currentSlot, "h:mm a");
       
       timeSlots.push({
         time: timeString,
         value: timeString,
-        disabled: hasConflict,
+        disabled: isPast || hasAppointmentConflict || hasBlockoutConflict,
+        available: !isPast && !hasAppointmentConflict && !hasBlockoutConflict,
       });
-
+      
       // Move to next hour
       currentSlot = addMinutes(currentSlot, 60);
     }
@@ -112,6 +148,8 @@ export async function GET(request: NextRequest) {
         success: true, 
         data: {
           availableSlots: timeSlots,
+          date: dateParam,
+          barberId: barberId,
         }
       },
       { status: 200 }

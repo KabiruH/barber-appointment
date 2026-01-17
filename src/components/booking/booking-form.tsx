@@ -112,7 +112,7 @@ export default function BookingForm() {
         const dateString = format(selectedDate, 'yyyy-MM-dd');
         
         const response = await fetch(
-          `/api/available-slots?date=${dateString}&barberId=${selectedBarberId}&duration=${service.duration}`
+          `/api/available-slots?date=${dateString}&barberId=${selectedBarberId}`
         );
         const result = await response.json();
         
@@ -159,7 +159,6 @@ export default function BookingForm() {
         body: JSON.stringify({
           serviceName: service.name,
           servicePrice: bookingAmount,
-          serviceDuration: service.duration,
           barberId: data.barberId,
           date: dateString, // Send as YYYY-MM-DD string
           time: data.time,

@@ -13,7 +13,7 @@ export interface Barber {
   email: string | null;
   bio: string | null;
   imageUrl: string | null;
-  role?: 'ADMIN' | 'BARBER';
+  role?: 'ADMIN' | 'BARBER' | 'BEAUTICIAN';
   createdAt: Date;
   updatedAt: Date;
 }

@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const barbers = await prisma.user.findMany({
       where: {
         role: {
-          in: ['BARBER', 'ADMIN'], // Include both barbers and admins
+          in: ['BARBER', 'ADMIN', 'BEAUTICIAN'], // Include both barbers and admins
         },
         isActive: true,
       },

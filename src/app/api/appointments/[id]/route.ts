@@ -11,7 +11,6 @@ const updateAppointmentSchema = z.object({
   // Other optional fields for full appointment edits
   serviceName: z.string().optional(),
   servicePrice: z.number().optional(),
-  serviceDuration: z.number().optional(),
   barberId: z.string().optional(),
   date: z.string().optional(), // ISO date string
   time: z.string().optional(), // Time in format "1:00 PM"
@@ -61,7 +60,6 @@ export async function PATCH(
       status,
       serviceName,
       servicePrice,
-      serviceDuration,
       barberId, 
       date, 
       time, 
@@ -123,7 +121,6 @@ export async function PATCH(
     // Service updates
     if (serviceName) updateData.serviceName = serviceName;
     if (servicePrice !== undefined) updateData.servicePrice = servicePrice;
-    if (serviceDuration !== undefined) updateData.serviceDuration = serviceDuration;
     
     // Handle date/time updates
     if (date && time) {
@@ -151,11 +148,11 @@ export async function PATCH(
       
       const startTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
       
-      // Get service duration (use updated duration if provided, otherwise use existing)
-      const duration = serviceDuration || existingAppointment.serviceDuration;
+      // Default duration: 1 hour (60 minutes)
+      const defaultDuration = 60;
       
-      // Calculate end time based on service duration
-      const endTime = new Date(startTime.getTime() + duration * 60000);
+      // Calculate end time based on default duration
+      const endTime = new Date(startTime.getTime() + defaultDuration * 60000);
       
       // Set the new start and end times
       updateData.startTime = startTime;
@@ -239,7 +236,7 @@ export async function PATCH(
         where: { id: barberId },
       });
       
-      if (!barber || !barber.isActive || (barber.role !== 'BARBER' && barber.role !== 'ADMIN')) {
+      if (!barber || !barber.isActive || !['BARBER', 'BEAUTICIAN', 'ADMIN'].includes(barber.role)) {
         return NextResponse.json(
           { success: false, message: "Selected user cannot take appointments" },
           { status: 404 }
