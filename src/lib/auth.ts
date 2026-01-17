@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
 
-export type UserRole = 'ADMIN' | 'BARBER';
+export type UserRole = 'ADMIN' | 'BARBER' | 'BEAUTICIAN';
 
 export interface TokenPayload {
   userId: string;
