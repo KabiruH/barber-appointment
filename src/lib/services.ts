@@ -25,6 +25,14 @@ export const SERVICES: Service[] = [
     category: "Hair",
     isHaircut: true,
   },
+    {
+    id: "haircut-and-dye",
+    name: "Haircut and dye",
+    description: "Precision cut with attention to detail, includes dye",
+    price: 2000,
+    category: "Hair",
+    isHaircut: true,
+  },
   
   // Hand Services
   {
