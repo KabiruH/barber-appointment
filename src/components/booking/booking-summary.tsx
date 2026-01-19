@@ -21,6 +21,7 @@ export function BookingSummary({ service }: BookingSummaryProps) {
             Kes {service.price.toLocaleString()}
           </span>
         </div>
+        
         {service.description && (
           <p className="text-sm text-gray-600 pt-2 border-t">
             {service.description}
@@ -31,7 +32,7 @@ export function BookingSummary({ service }: BookingSummaryProps) {
         <div className="border-t border-amber-300 my-3 pt-3">
           <div className="flex justify-between items-center">
             <span className="text-gray-700 font-medium">
-              {isHaircut ? "Booking Fee:" : "Payment Required:"}
+              {isHaircut ? "Booking Amount:" : "Payment Required:"}
             </span>
             <span className="font-bold text-amber-600 text-xl">
               Kes {bookingAmount.toLocaleString()}
@@ -44,15 +45,14 @@ export function BookingSummary({ service }: BookingSummaryProps) {
           <div className="flex items-start gap-2 mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-blue-800">
-              Pay Kes 1,500 booking fee to secure your appointment. 
-              Full service amount (Kes {service.price.toLocaleString()}) is due after your haircut.
+              Pay Kes 1,500 to secure your appointment and skip the queue. This covers the full haircut service.
             </p>
           </div>
         ) : (
           <div className="flex items-start gap-2 mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
             <AlertCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-green-800">
-              Full payment is required to confirm and secure your appointment.
+              Full payment of Kes {service.price.toLocaleString()} is required to confirm and secure your appointment.
             </p>
           </div>
         )}

@@ -32,15 +32,7 @@ export default function Footer() {
               >
                 <SiTiktok className="h-6 w-6" />
               </a>
-              <a
-                href="https://web.facebook.com/people/HAVAN-the-Barber/100070187910616/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-amber-500 transition-colors"
-                aria-label="Facebook"
-              >
-                <Facebook className="h-6 w-6" />
-              </a>
+          
             </div>
           </div>
           
