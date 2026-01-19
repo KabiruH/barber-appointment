@@ -1,3 +1,4 @@
+// components/header.tsx
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -8,7 +9,7 @@ import { LogOut, Menu, X } from "lucide-react";
 interface User {
   id: string;
   email: string;
-  role: 'admin' | 'barber';
+  role: 'ADMIN' | 'BARBER' | 'BEAUTICIAN';
   name?: string;
 }
 
@@ -100,13 +101,12 @@ export default function Header() {
           <nav className="hidden md:flex items-center space-x-6">
             <NavLink href="/">Home</NavLink>
             <NavLink href="/book">Book Appointment</NavLink>
-            
+            <NavLink href="/gallery">Gallery</NavLink>
+
             {isLoggedIn ? (
               <>
                 <NavLink href="/appointments">Dashboard</NavLink>
-                {user?.role === 'admin' && (
-                  <NavLink href="/admin">Admin Panel</NavLink>
-                )}
+                {user?.role === 'ADMIN' }
                 <div className="flex items-center space-x-3 ml-2 pl-4 border-l">
                   <span className="text-sm text-gray-600">
                     {user?.name || user?.email}
@@ -160,12 +160,13 @@ export default function Header() {
           <div className="md:hidden py-4 border-t">
             <nav className="flex flex-col space-y-3">
               <NavLink href="/">Home</NavLink>
+              <NavLink href="/gallery">Gallery</NavLink>
               <NavLink href="/book">Book Appointment</NavLink>
               
               {isLoggedIn ? (
                 <>
-                  <NavLink href="/dashboard">Dashboard</NavLink>
-                  {user?.role === 'admin' && (
+                  <NavLink href="/appointments">Dashboard</NavLink>
+                  {user?.role === 'ADMIN' && (
                     <NavLink href="/admin">Admin Panel</NavLink>
                   )}
                   <div className="pt-3 border-t">

@@ -41,6 +41,9 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const isToday = selectedDate.toDateString() === now.toDateString();
     
+    // Check if it's Sunday (day 0)
+    const isSunday = selectedDate.getDay() === 0;
+    
     // Fetch existing appointments for this barber on this day
     const whereClause: any = {
       barberId,
@@ -79,14 +82,16 @@ export async function GET(request: NextRequest) {
       },
     });
     
-    // Define working hours (7am to 8pm)
+    // Define working hours based on day of week
+    // Sunday: 10am - 8pm
+    // Other days: 8am - 8pm
     const workStart = new Date(selectedDate);
-    workStart.setHours(7, 0, 0, 0);
+    workStart.setHours(isSunday ? 10 : 8, 0, 0, 0);
     
     const workEnd = new Date(selectedDate);
-    workEnd.setHours(20, 0, 0, 0);
+    workEnd.setHours(20, 0, 0, 0); // 8pm for all days
     
-    // Generate time slots (1 hour intervals from 7am to 8pm)
+    // Generate time slots (1 hour intervals)
     const timeSlots = [];
     let currentSlot = new Date(workStart);
     
@@ -150,6 +155,8 @@ export async function GET(request: NextRequest) {
           availableSlots: timeSlots,
           date: dateParam,
           barberId: barberId,
+          dayOfWeek: isSunday ? 'Sunday' : 'Weekday',
+          hours: isSunday ? '10:00 AM - 8:00 PM' : '7:00 AM - 8:00 PM',
         }
       },
       { status: 200 }

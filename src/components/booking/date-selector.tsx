@@ -35,7 +35,6 @@ export function DateSelector({ form, disabled }: DateSelectorProps) {
       render={({ field }) => (
         <FormItem className="flex flex-col">
           <FormLabel>Date</FormLabel>
-
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
               <FormControl>
@@ -56,7 +55,6 @@ export function DateSelector({ form, disabled }: DateSelectorProps) {
                 </Button>
               </FormControl>
             </PopoverTrigger>
-
             {/* Bigger popover + closable on date pick */}
             <PopoverContent className="p-0 w-[300px]">
               <Calendar
@@ -64,17 +62,17 @@ export function DateSelector({ form, disabled }: DateSelectorProps) {
                 selected={field.value}
                 onSelect={(date) => {
                   field.onChange(date);
-                  setOpen(false); // <-- closes popover instantly
+                  setOpen(false); // closes popover instantly
                 }}
                 disabled={(date) =>
-                  date < new Date(new Date().setHours(0, 0, 0, 0)) ||
-                  date.getDay() === 0
+                  // Only block dates in the past
+                  date < new Date(new Date().setHours(0, 0, 0, 0))
+                  // REMOVED: || date.getDay() === 0  (Sunday blocking removed)
                 }
                 initialFocus
               />
             </PopoverContent>
           </Popover>
-
           <FormMessage />
         </FormItem>
       )}
