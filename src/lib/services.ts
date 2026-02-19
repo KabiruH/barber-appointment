@@ -158,7 +158,7 @@ export function getServicePrice(id: string): number {
 }
 
 export function getBookingAmount(service: Service): number {
-  return service.isHaircut ? 1500 : service.price;
+  return service.isHaircut ? 2000 : service.price;
 }
 
 export const SERVICE_CATEGORIES = [

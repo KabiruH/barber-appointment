@@ -176,7 +176,7 @@ function generateCustomerEmailHTML(data: {
   referenceNumber: string;
 }) {
   const isHaircut = data.serviceName.toLowerCase().includes('haircut');
-  const paymentAmount = isHaircut ? 1500 : data.servicePrice;
+  const paymentAmount = isHaircut ? 2000 : data.servicePrice;
 
   return `
 <!DOCTYPE html>
@@ -318,7 +318,7 @@ function generateAdminEmailHTML(data: {
   notes?: string;
 }) {
   const isHaircut = data.serviceName.toLowerCase().includes('haircut');
-  const paymentAmount = isHaircut ? 1500 : data.servicePrice;
+  const paymentAmount = isHaircut ? 2000 : data.servicePrice;
 
   return `
 <!DOCTYPE html>
