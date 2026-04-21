@@ -45,7 +45,7 @@ export function BookingSummary({ service }: BookingSummaryProps) {
           <div className="flex items-start gap-2 mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-blue-800">
-              Pay Kes 2,000 to secure your appointment and skip the queue. This covers the full haircut service.
+              Pay Kes 1,500 to secure your appointment and skip the queue. This covers the full haircut service.
             </p>
           </div>
         ) : (
